@@ -3,6 +3,8 @@ import easyocr
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 
+
+
 # Initialize the Flask app and EasyOCR reader
 app = Flask(__name__)
 reader = easyocr.Reader(['en'])
