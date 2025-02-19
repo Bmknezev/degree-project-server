@@ -74,7 +74,7 @@ MESSAGE_HANDLERS = {
 # -----------------------------------------------------------------------------
 # JSON Message Endpoint
 # -----------------------------------------------------------------------------
-@app.route('/api', methods=['POST'])
+@app.route('/api/message', methods=['POST'])
 def api_message():
     """
     Endpoint that accepts a JSON payload with a 'type' field and optional 'data'.
