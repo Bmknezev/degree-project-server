@@ -29,6 +29,14 @@ def create_database(connection, db_name):
     return execute_query(connection, query, f"{db_name} database creation")
 
 
+    # this function selects a database in a MySQL database
+def select_database(connection, db_name, show_success = True, show_error = True):
+        # this appends the database name to the USE statement
+    query = "USE " + db_name
+        # this executes the query
+    return execute_query(connection, query, f"{db_name} database selection", show_success, show_error)
+
+
     # this function drops a database in a MySQL database
 def drop_database(connection, db_name):
         # this appends the database name to the DROP DATABASE
@@ -39,27 +47,23 @@ def drop_database(connection, db_name):
 
 # ---------------------- tables ----------------------
     # this function creates a table in a MySQL database
-def create_table(connection, db_name, table_name, columns, show_selection_success = False, show_execution_success = True):
-        # this appends the database name to the USE statement
-    query = "USE " + db_name
-        # this attempts to execute the query
-    if not execute_query(connection, query, f"{db_name} database selection", show_success = show_selection_success):
+def create_table(connection, db_name, table_name, columns, if_not_exists = False, show_selection_success = False, show_execution_success = True):
+        # this attempts to select the correct database
+    if not select_database(connection, db_name, show_success = show_selection_success):
             # this returns False if the query fails
         return False
 
         # this appends the table name and columns to the CREATE TABLE statement
-    query = f"CREATE TABLE IF NOT EXISTS {table_name} ({columns})"
+    query = f"CREATE TABLE {'' if if_not_exists else 'IF NOT EXISTS'} {table_name} ({columns})"
         # this executes the query
     return execute_query(connection, query, f"{table_name} table creation", show_success = show_execution_success)
 
 
     # this function inserts a tuple into a table from a MySQL database
 def insert_into_table(connection, db_name, table_name, columns, values, show_selection_success = False, show_execution_success = True):
-        # this appends the database name to the USE statement
-    query = "USE " + db_name
-        # this attempts to execute the query
-    if not execute_query(connection, query, f"{db_name} database selection", show_success = show_selection_success):
-            # this returns False if the query fails
+    # this attempts to select the correct database
+    if not select_database(connection, db_name, show_success = show_selection_success):
+        # this returns False if the query fails
         return False
 
         # this appends the table name, columns, and values to the INSERT INTO statement
@@ -70,11 +74,9 @@ def insert_into_table(connection, db_name, table_name, columns, values, show_sel
 
     # this function deletes a tuple from a table in a MySQL database
 def delete_from_table(connection, db_name, table_name, condition, show_selection_success = False, show_execution_success = True):
-        # this appends the database name to the USE statement
-    query = "USE " + db_name
-        # this attempts to execute the query
-    if not execute_query(connection, query, f"{db_name} database selection", show_success = show_selection_success):
-            # this returns False if the query fails
+    # this attempts to select the correct database
+    if not select_database(connection, db_name, show_success = show_selection_success):
+        # this returns False if the query fails
         return False
 
         # this appends the table name and condition to the DELETE FROM statement
@@ -84,18 +86,16 @@ def delete_from_table(connection, db_name, table_name, condition, show_selection
 
 
     # this function drops a table in a MySQL database
-def drop_table(connection, db_name, table_name):
-        # this appends the database name to the USE statement
-    query = "USE " + db_name
-        # this attempts to execute the query
-    if not execute_query(connection, query, f"{db_name} database selection", show_success = False):
-            # this returns False if the query fails
+def drop_table(connection, db_name, table_name, if_exists = False, show_selection_success = False, show_execution_success = True):
+    # this attempts to select the correct database
+    if not select_database(connection, db_name, show_success = show_selection_success):
+        # this returns False if the query fails
         return False
 
         # this appends the table name to the DROP TABLE statement
-    query = f"DROP TABLE IF EXISTS {table_name}"
+    query = f"DROP TABLE {'' if if_exists else 'IF EXISTS'} {table_name}"
         # this executes the query
-    return execute_query(connection, query, f" {table_name} table drop")
+    return execute_query(connection, query, f" {table_name} table drop", show_success = show_execution_success)
 
 
 # ---------------------- queries ----------------------
