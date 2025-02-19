@@ -72,6 +72,32 @@ def insert_into_table(connection, db_name, table_name, columns, values, show_sel
     return execute_query(connection, query, f"{table_name} row insertion", show_success = show_execution_success)
 
 
+    # this function selects all tuples fulfilling an argument from a table in a MySQL database
+def select_from_table(connection, db_name, table_name, arguments, show_selection_success = False, show_execution_success = True):
+    # this attempts to select the correct database
+    if not select_database(connection, db_name, show_success = show_selection_success):
+        # this returns False if the query fails
+        return False
+
+        # this appends the table name and arguments to the SELECT statement
+    query = f"SELECT * FROM {table_name} {arguments}"
+        # this executes the query
+    return execute_query(connection, query, f"{table_name} row selection", show_results = True, show_success = show_execution_success)
+
+
+    # this function selects all tuples from a table in a MySQL database
+def select_all_from_table(connection, db_name, table_name, show_selection_success = False, show_execution_success = True):
+    # this attempts to select the correct database
+    if not select_database(connection, db_name, show_success = show_selection_success):
+        # this returns False if the query fails
+        return False
+
+        # this appends the table name to the SELECT statement
+    query = f"SELECT * FROM {table_name}"
+        # this executes the query
+    return execute_query(connection, query, f"{table_name} all rows selection", show_results = True, show_success = show_execution_success)
+
+
     # this function deletes a tuple from a table in a MySQL database
 def delete_from_table(connection, db_name, table_name, condition, show_selection_success = False, show_execution_success = True):
     # this attempts to select the correct database
@@ -100,9 +126,9 @@ def drop_table(connection, db_name, table_name, if_exists = False, show_selectio
 
 # ---------------------- queries ----------------------
     # this function executes a query in a MySQL database
-def execute_query(connection, query, message = "Query", show_success = True, show_error = True):
+def execute_query(connection, query, message = "Query", show_success = True, show_error = True, show_results = False):
         # this creates a cursor object to execute the query
-    cursor = connection.cursor()
+    cursor = connection.cursor(buffered = True)
         # this try-except block attempts to execute the query
     try:
         cursor.execute(query)
@@ -110,6 +136,13 @@ def execute_query(connection, query, message = "Query", show_success = True, sho
             # this print statement indicates a successful query execution if show_success is True
         if show_success:
             print(f"{message} executed successfully")
+        if show_results:
+            result = cursor.fetchall()
+            if result:
+                print(pd.DataFrame(result))
+                return result
+            else:
+                print("No results")
         return True
     except Error as err:
             # this print statement indicates an error in query execution if show_error is True
