@@ -7,3 +7,4 @@ dbif.drop_database(connection, db_name)
 dbif.create_database(connection, db_name)
 
 dbif.create_table(connection, db_name, "users", "id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), age INT")
+dbif.insert_into_table(connection, db_name, "users", "name, age", "'John Doe', 25")
