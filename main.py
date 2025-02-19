@@ -2,6 +2,8 @@ import os
 import easyocr
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
+import re
+import string
 
 
 
@@ -146,9 +148,55 @@ def upload_file():
         ocr_results = reader.readtext(file_path)
         # Concatenate the detected text segments into one string
         extracted_text = " ".join([text for (_, text, _) in ocr_results])
-        return jsonify({'ocr_result': extracted_text}), 200
+
+        # split text based on keywords and send to json object
+        key = []
+        j = split_string_by_keywords(extracted_text, key)
+
+        return j, 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+def split_string_by_keywords(s, keywords):
+    input_string = s.translate(str.maketrans('','',string.punctuation))
+    # Create a regex pattern by joining keywords with | for OR condition
+    pattern = r'\b(' + '|'.join(re.escape(keyword) for keyword in keywords) + r')\b'
+
+
+    # Find the first occurrence of any keyword in the input string
+    first_keyword_pos = min((input_string.find(keyword) for keyword in keywords if keyword in input_string),default=-1)
+
+    if first_keyword_pos != -1:
+        # Cut the string to start from the first occurrence of a keyword
+        input_string = input_string[first_keyword_pos:]
+
+    # Split the string based on the pattern and keep the delimiters (keywords)
+    result = re.split(pattern, input_string)
+
+    # Filter out empty strings if any exist
+    result = [part for part in result if part]
+
+    # Initialize an empty dictionary to store the keyword-text pairs
+    result_dict = {}
+
+    # Iterate through the result and extract the text after each keyword
+    i = 0
+    while i < len(result):
+        keyword = result[i]
+        if i + 1 < len(result):
+            # The text after the keyword
+            text = result[i + 1]
+            # Add the keyword-text pair to the dictionary
+            result_dict[keyword] = text
+            i += 2  # Skip to the next keyword after the current text
+        else:
+            # If there's a keyword without any following text, just add it as key with empty string as value
+            result_dict[keyword] = ''
+            i += 1
+
+    return result_dict
 
 
 # -----------------------------------------------------------------------------
