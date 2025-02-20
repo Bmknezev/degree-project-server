@@ -1,22 +1,24 @@
-import mysql.connector
-from mysql.connector import Error
+#import mysql.connector
+#from mysql.connector import Error
+import sqlite3
+from sqlite3 import Error
 import pandas as pd
 
     # this function creates a connection to the MySQL database
-def create_server_connection(host_name, user_name, user_password):
-    connection = None
+def create_server_connection(host_name, user_name, user_password, db_name = "database"):
+    connection = sqlite3.connect(db_name)
         # this try-except block attempts to connect to the database
-    try:
-        connection = mysql.connector.connect(
-            host = host_name,
-            user = user_name,
-            passwd = user_password
-        )
+    #try:
+    #    connection = mysql.connector.connect(
+    #        host = host_name,
+    #        user = user_name,
+    #        passwd = user_password
+    #    )
             # this print statement indicates a successful connection
-        print("MySQL Database connection successful")
-    except Error as err:
+    #    print("MySQL Database connection successful")
+    #except Error as err:
             # this print statement indicates an error in connection
-        print(f"Error: '{err}'")
+    #    print(f"Error: '{err}'")
 
         # this returns the connection object
     return connection
@@ -141,9 +143,11 @@ def drop_table(connection, table_name, db_name = None, if_exists = False, show_s
     # this function executes a query in a MySQL database
 def execute_query(connection, query, message = "Query", show_success = True, show_error = True, show_results = False):
         # this creates a cursor object to execute the query
-    cursor = connection.cursor(buffered = True)
+    #cursor = connection.cursor(buffered = True)
+    cursor = connection.cursor()
         # this try-except block attempts to execute the query
     try:
+            # this executes the query
         cursor.execute(query)
         connection.commit()
             # this print statement indicates a successful query execution if show_success is True
