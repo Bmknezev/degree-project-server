@@ -45,8 +45,10 @@ def login_handler(data):
     #    return {'status': 'failure', 'message': 'Invalid credentials'}
     connection = connect_to_db("company_db")
     if login(connection, username, password):
+        connection.close()
         return {'status': 'success', 'message': 'Login successful'}
     else:
+        connection.close()
         return {'status': 'failure', 'message': 'Invalid credentials'}
 
 
