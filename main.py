@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 import re
 import string
 
+from database import invoices
 from database.user_accounts import *
 from database.invoices import *
 
@@ -85,6 +86,13 @@ def echo_handler(data):
     """
     return data
 
+def get_invoices_handler(data):
+    """
+    Get invoices from database
+    """
+
+    return invoices
+
 
 # Map message types to their handlers.
 # New message types can be added here.
@@ -93,6 +101,7 @@ MESSAGE_HANDLERS = {
     'SEND_INVOICE': invoice_handler,
     'CONFIRM_INVOICE': confirm_handler,
     'ECHO': echo_handler,  # For sample/test messages
+    'GET_INVOICES': get_invoices_handler,
 }
 
 
@@ -240,4 +249,5 @@ def sample():
 # Run the Server
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
+    print("starting server...")
     app.run(host="0.0.0.0", port=8081, debug=True)
