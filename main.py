@@ -6,6 +6,7 @@ import re
 import string
 
 from database.user_accounts import *
+from database.invoices import *
 
 # Initialize the Flask app and EasyOCR reader
 app = Flask(__name__)
@@ -22,6 +23,10 @@ connection = connect_to_db("company_db")
 #drop_table(connection, "user")
 #if not table_exists(connection, "user"):
 #create_table(connection, "user", "username VARCHAR(255) NOT NULL, first_name VARCHAR(255) NOT NULL, last_name VARCHAR(255) NOT NULL, email VARCHAR(255) NOT NULL, password VARCHAR(255) NOT NULL, role VARCHAR(255) NOT NULL, payment_info VARCHAR(255) NOT NULL, PRIMARY KEY (username, role)")
+#columns = ("invoice_number VARCHAR(255) NOT NULL, company VARCHAR(25) NOT NULL, subtotal DECIMAL(10, 2) NOT NULL CHECK (subtotal >= 0), tax DECIMAL(10, 2) NOT NULL CHECK (tax >= 0), total DECIMAL(10, 2) NOT NULL CHECK (total >= 0 AND total >= subtotal), gl_account VARCHAR(255) NOT NULL, issue_date DATE NOT NULL, due_date DATE NOT NULL, date_paid DATE, status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'payed')), description VARCHAR(255), PRIMARY KEY (invoice_number, company)")
+#create_table(connection, "invoice", columns)
+#create_invoice(connection, "1", "company", 100.00, 10.00, 110.00, "gl_account", "2021-01-01", "2021-02-01", "2021-01-15", "awaiting payment", "description")
+#create_invoice(connection, "2", "company", 200.00, 20.00, 220.00, "gl_account", "2021-02-01", "2021-03-01", "2021-02-15", "awaiting approval", "description")
 #if select_tuple_from_table(connection, "user", "WHERE username = 'admin_user'", False, False) is None:
 #create_account(connection, "Test", "Account", "user", "user@email.com", "password", "role", "payment_info")
 
