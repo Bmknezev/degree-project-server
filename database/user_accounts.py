@@ -1,13 +1,13 @@
 from database.db_interaction_functions import *
 
-columns = ("user_id INTEGER PRIMARY KEY, "
-           "first_name VARCHAR(255), "
-           "last_name VARCHAR(255), "
-           "username VARCHAR(255), "
-           "email VARCHAR(255), "
-           "password VARCHAR(255), "
-           "role VARCHAR(255), "
-           "payment_info VARCHAR(255)")
+columns = ("username VARCHAR(255) NOT NULL, "
+           "first_name VARCHAR(255) NOT NULL, "
+           "last_name VARCHAR(255) NOT NULL, "
+           "email VARCHAR(255) NOT NULL, "
+           "password VARCHAR(255) NOT NULL, "
+           "role VARCHAR(255) NOT NULL, "
+           "payment_info VARCHAR(255) NOT NULL, "
+           "PRIMARY KEY (username, role)")
 
 #def connect_to_db(db_name = "database", show_success = False):
     #return connect_to_db(db_name, show_success)
@@ -17,8 +17,8 @@ def create_account(connection, first_name, last_name, username, email, password,
         # check if the user table exists
     if table_exists(connection, "user"):
             # formats the values to be inserted into the user table
-        columns = "first_name, last_name, username, email, password, role, payment_info"
-        values = f"'{first_name}', '{last_name}', '{username}', '{email}', '{password}', '{role}', '{payment_info}'"
+        columns = "username, first_name, last_name, email, password, role, payment_info"
+        values = f"'{username}', '{first_name}', '{last_name}', '{email}', '{password}', '{role}', '{payment_info}'"
             # inserts the values into the user table
         return insert_into_table(connection, "user", columns, values)
     print("Failed to create account: user table does not exist")
@@ -70,10 +70,18 @@ def delete_account(connection, username, password):
 if __name__ == '__main__':
     connection = connect_to_db("database")
     table_name = "user"
+    columns = ("username VARCHAR(255) NOT NULL, "
+               "first_name VARCHAR(255) NOT NULL, "
+               "last_name VARCHAR(255) NOT NULL, "
+               "email VARCHAR(255) NOT NULL, "
+               "password VARCHAR(255) NOT NULL, "
+               "role VARCHAR(255) NOT NULL, "
+               "payment_info VARCHAR(255) NOT NULL, "
+               "PRIMARY KEY (username, role)")
 
-    # delete_account(connection, "admin", "admin")
-    #drop_table(connection, table_name)
+    delete_account(connection, "admin", "admin")
+    drop_table(connection, table_name)
 
-    #create_table(connection, table_name, columns)
+    create_table(connection, table_name, columns)
     create_account(connection, "admin", "admin", "admin", "admin", "admin", "admin", "admin")
-    #print(f"Account Information: {access_account_information(connection, "admin", "admin")}")
+    print(f"Account Information: {access_account_information(connection, "admin", "admin")}")

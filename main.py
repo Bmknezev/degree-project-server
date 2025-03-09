@@ -18,11 +18,12 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 # Initialize the connection to the database
-#connection = connect_to_db("company_db")
+connection = connect_to_db("company_db")
+#drop_table(connection, "user")
 #if not table_exists(connection, "user"):
-#    create_table(connection, "user", columns)
+#create_table(connection, "user", "username VARCHAR(255) NOT NULL, first_name VARCHAR(255) NOT NULL, last_name VARCHAR(255) NOT NULL, email VARCHAR(255) NOT NULL, password VARCHAR(255) NOT NULL, role VARCHAR(255) NOT NULL, payment_info VARCHAR(255) NOT NULL, PRIMARY KEY (username, role)")
 #if select_tuple_from_table(connection, "user", "WHERE username = 'admin_user'", False, False) is None:
-#    create_account(connection, "admin_first", "admin_last", "admin_user", "admin@admin.admin", "admin_pass", "admin_role", "admin_payment")
+#create_account(connection, "Test", "Account", "user", "user@email.com", "password", "role", "payment_info")
 
 
 
