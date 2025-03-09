@@ -96,10 +96,19 @@ def get_invoices_handler(data):
     sort_order = data.get('sortOrder', '')
 
     connection = connect_to_db("company_db")
-    invoices = get_invoices(connection, page_number, page_size, sort_by, sort_order)
+    raw_invoices = get_invoices(connection, page_number, page_size, sort_by, sort_order)
     connection.close()
 
-    return {"invoices": invoices}
+    # Define column mappings (Ensure these match the actual database columns)
+    column_names = ["invoiceId", "sender", "subtotal", "tax", "totalAmount", "glAccount", "issueDate", "dueDate",
+                    "paymentDate", "status", "description"]
+
+    # Convert raw database rows into JSON objects
+    formatted_invoices = [
+        dict(zip(column_names, row)) for row in raw_invoices
+    ]
+
+    return {"invoices": formatted_invoices}  # Now returns proper JSON objects
 
 
 
