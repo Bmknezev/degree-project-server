@@ -5,7 +5,6 @@ from werkzeug.utils import secure_filename
 import re
 import string
 
-
 from database.user_accounts import *
 
 # Initialize the Flask app and EasyOCR reader
@@ -24,6 +23,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 #    create_table(connection, "user", columns)
 #if select_tuple_from_table(connection, "user", "WHERE username = 'admin_user'", False, False) is None:
 #    create_account(connection, "admin_first", "admin_last", "admin_user", "admin@admin.admin", "admin_pass", "admin_role", "admin_payment")
+
 
 
 # -----------------------------------------------------------------------------
