@@ -90,6 +90,9 @@ def get_invoices_handler(data):
     """
     Get invoices from database
     """
+    pageSize = data.get('pageSize', '')
+    sortBy = data.get('sortBy', '')
+    sortOrder = data.get('sortOrder', '')
 
     return invoices
 
