@@ -1,4 +1,4 @@
-from db_interaction_functions import *
+from database.db_interaction_functions import *
 
 columns = ("user_id INTEGER PRIMARY KEY, "
            "first_name VARCHAR(255), "
@@ -8,6 +8,9 @@ columns = ("user_id INTEGER PRIMARY KEY, "
            "password VARCHAR(255), "
            "role VARCHAR(255), "
            "payment_info VARCHAR(255)")
+
+#def connect_to_db(db_name = "database", show_success = False):
+    #return connect_to_db(db_name, show_success)
 
     # this creates an account in the user table
 def create_account(connection, first_name, last_name, username, email, password, role, payment_info):
@@ -19,6 +22,19 @@ def create_account(connection, first_name, last_name, username, email, password,
             # inserts the values into the user table
         return insert_into_table(connection, "user", columns, values)
     print("Failed to create account: user table does not exist")
+    return False
+
+def login(connection, username, password):
+        # check if the user table exists
+    if table_exists(connection, "user"):
+        db_password = select_value_from_table(connection, "user", "password", f"WHERE username = '{username}'", False, False, True)
+            # if the password is correct return True
+        if db_password[0] == password:
+            print(f"Login successful: {username}")
+            return True
+        print(f"Failed to login: incorrect password")
+        return False
+    print("Failed to login: user table does not exist")
     return False
 
     # this accesses an accounts First Name, Last Name, Role, and Payment Info using the user's username and password
@@ -55,9 +71,9 @@ if __name__ == '__main__':
     connection = connect_to_db("database")
     table_name = "user"
 
-    delete_account(connection, "admin", "admin")
-    drop_table(connection, table_name)
+    # delete_account(connection, "admin", "admin")
+    #drop_table(connection, table_name)
 
-    create_table(connection, table_name, columns)
+    #create_table(connection, table_name, columns)
     create_account(connection, "admin", "admin", "admin", "admin", "admin", "admin", "admin")
-    print(f"Account Information: {access_account_information(connection, "admin", "admin")}")
+    #print(f"Account Information: {access_account_information(connection, "admin", "admin")}")

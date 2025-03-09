@@ -6,6 +6,7 @@ import re
 import string
 
 
+from database.user_accounts import *
 
 # Initialize the Flask app and EasyOCR reader
 app = Flask(__name__)
@@ -17,6 +18,13 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+# Initialize the connection to the database
+#connection = connect_to_db("company_db")
+#if not table_exists(connection, "user"):
+#    create_table(connection, "user", columns)
+#if select_tuple_from_table(connection, "user", "WHERE username = 'admin_user'", False, False) is None:
+#    create_account(connection, "admin_first", "admin_last", "admin_user", "admin@admin.admin", "admin_pass", "admin_role", "admin_payment")
+
 
 # -----------------------------------------------------------------------------
 # Message Handlers
@@ -26,10 +34,17 @@ def login_handler(data):
     Handler for login messages.
     Expected data: { "username": "...", "password": "..." }
     """
+    print("attempting login")
     username = data.get('username', '')
     password = data.get('password', '')
+    print("still attempting login")
     # Dummy validation logic – replace with real authentication
-    if username == 'user' and password == 'pass':
+    #if username == 'user' and password == 'pass':
+    #    return {'status': 'success', 'message': 'Login successful'}
+    #else:
+    #    return {'status': 'failure', 'message': 'Invalid credentials'}
+    connection = connect_to_db("company_db")
+    if login(connection, username, password):
         return {'status': 'success', 'message': 'Login successful'}
     else:
         return {'status': 'failure', 'message': 'Invalid credentials'}

@@ -1,5 +1,3 @@
-#import mysql.connector
-#from mysql.connector import Error
 import sqlite3
 from sqlite3 import Error
 import pandas as pd
