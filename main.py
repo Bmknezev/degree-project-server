@@ -97,8 +97,10 @@ def get_invoices_handler(data):
 
     connection = connect_to_db("company_db")
     invoices = get_invoices(connection, page_number, page_size, sort_by, sort_order)
+    connection.close()
 
-    return invoices
+    return {"invoices": invoices}
+
 
 
 # Map message types to their handlers.
