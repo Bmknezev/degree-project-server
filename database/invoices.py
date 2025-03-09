@@ -1,6 +1,6 @@
 from database.db_interaction_functions import *
 
-def create_invoice(connection, invoice_number, company, subtotal, tax, total, gl_account, issue_date, due_date, date_paid, status, description):
+def add_invoice(connection, invoice_number, company, subtotal, tax, total, gl_account, issue_date, due_date, date_paid, status, description):
     columns = "invoice_number, company, subtotal, tax, total, gl_account, issue_date, due_date, date_paid, status, description"
     values = f"'{invoice_number}', '{company}', {subtotal}, {tax}, {total}, '{gl_account}', '{issue_date}', '{due_date}', '{date_paid}', '{status}', '{description}'"
     return insert_into_table(connection, "invoice", columns, values)
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     drop_table(connection, table_name)
 
     create_table(connection, table_name, columns)
-    create_invoice(connection, "1", "company", 100.00, 10.00, 110.00, "gl_account", "2021-01-01", "2021-02-01", "2021-01-15", "awaiting payment", "description")
-    create_invoice(connection, "2", "company", 200.00, 20.00, 220.00, "gl_account", "2021-02-01", "2021-03-01", "2021-02-15", "awaiting approval", "description")
+    add_invoice(connection, "1", "company", 100.00, 10.00, 110.00, "gl_account", "2021-01-01", "2021-02-01", "2021-01-15", "awaiting payment", "description")
+    add_invoice(connection, "2", "company", 200.00, 20.00, 220.00, "gl_account", "2021-02-01", "2021-03-01", "2021-02-15", "awaiting approval", "description")
 
-    get_invoices(connection, 1, 5, "invoice_number", "ASC")
+    print(get_invoices(connection, 1, 5, "invoice_number", "ASC"))
