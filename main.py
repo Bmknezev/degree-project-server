@@ -20,14 +20,24 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 # Initialize the connection to the database
-connection = connect_to_db("company_db")
+#connection = connect_to_db("company_db")
 #drop_table(connection, "user")
 #if not table_exists(connection, "user"):
 #create_table(connection, "user", "username VARCHAR(255) NOT NULL, first_name VARCHAR(255) NOT NULL, last_name VARCHAR(255) NOT NULL, email VARCHAR(255) NOT NULL, password VARCHAR(255) NOT NULL, role VARCHAR(255) NOT NULL, payment_info VARCHAR(255) NOT NULL, PRIMARY KEY (username, role)")
-#columns = ("invoice_number VARCHAR(255) NOT NULL, company VARCHAR(25) NOT NULL, subtotal DECIMAL(10, 2) NOT NULL CHECK (subtotal >= 0), tax DECIMAL(10, 2) NOT NULL CHECK (tax >= 0), total DECIMAL(10, 2) NOT NULL CHECK (total >= 0 AND total >= subtotal), gl_account VARCHAR(255) NOT NULL, issue_date DATE NOT NULL, due_date DATE NOT NULL, date_paid DATE, status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'payed')), description VARCHAR(255), PRIMARY KEY (invoice_number, company)")
+#columns = ("invoice_number VARCHAR(255) NOT NULL, company VARCHAR(25) NOT NULL, subtotal DECIMAL(10, 2) NOT NULL CHECK (subtotal >= 0), tax DECIMAL(10, 2) NOT NULL CHECK (tax >= 0), total DECIMAL(10, 2) NOT NULL CHECK (total >= 0 AND total >= subtotal), gl_account VARCHAR(255) NOT NULL, issue_date DATE NOT NULL, due_date DATE NOT NULL, date_paid DATE, status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'paid')), description VARCHAR(255), PRIMARY KEY (invoice_number, company)")
+#drop_table(connection, "invoice")
 #create_table(connection, "invoice", columns)
-#create_invoice(connection, "1", "company", 100.00, 10.00, 110.00, "gl_account", "2021-01-01", "2021-02-01", "2021-01-15", "awaiting payment", "description")
-#create_invoice(connection, "2", "company", 200.00, 20.00, 220.00, "gl_account", "2021-02-01", "2021-03-01", "2021-02-15", "awaiting approval", "description")
+#add_invoice(connection, "1", "company", 100.00, 10.00, 110.00, "gl_account", "2021-01-01", "2021-02-01", "2021-01-15", "awaiting payment", "description")
+#add_invoice(connection, "2", "company", 200.00, 20.00, 220.00, "gl_account", "2021-02-01", "2021-03-01", "2021-02-15", "awaiting approval", "description")
+#add_invoice(connection, "3", "organization", 349.56, 34.96, 384.52, "gl_account", "2021-03-01", "2021-04-01", "2021-03-15", "paid", "description")
+#add_invoice(connection, "4", "corporation", 150.00, 15.00, 165.00, "gl_account", "2021-04-01", "2021-05-01", "2021-04-15", "awaiting approval", "description")
+#add_invoice(connection, "5", "organization", 249.99, 24.99, 274.98, "gl_account", "2021-05-01", "2021-06-01", "2021-05-15", "awaiting payment", "description")
+#add_invoice(connection, "6", "enterprise", 3000.00, 300.00, 3300.00, "gl_account", "2021-06-01", "2021-07-01", "2021-06-15", "paid", "description")
+#add_invoice(connection, "7", "enterprise", 500.00, 50.00, 550.00, "gl_account", "2021-07-01", "2021-08-01", "2021-07-15", "awaiting approval", "description")
+#add_invoice(connection, "8", "megacorp", 1000.00, 100.00, 1100.00, "gl_account", "2021-08-01", "2021-09-01", "2021-08-15", "awaiting payment", "description")
+#add_invoice(connection, "9", "megacorp", 2000.00, 200.00, 2200.00, "gl_account", "2021-09-01", "2021-10-01", "2021-09-15", "paid", "description")
+#add_invoice(connection, "10", "establishment", 3000.00, 300.00, 3300.00, "gl_account", "2021-10-01", "2021-11-01", "2021-10-15", "awaiting approval", "description")
+
 #if select_tuple_from_table(connection, "user", "WHERE username = 'admin_user'", False, False) is None:
 #create_account(connection, "Test", "Account", "user", "user@email.com", "password", "role", "payment_info")
 
@@ -41,10 +51,8 @@ def login_handler(data):
     Handler for login messages.
     Expected data: { "username": "...", "password": "..." }
     """
-    print("attempting login")
     username = data.get('username', '')
     password = data.get('password', '')
-    print("still attempting login")
     # Dummy validation logic – replace with real authentication
     #if username == 'user' and password == 'pass':
     #    return {'status': 'success', 'message': 'Login successful'}

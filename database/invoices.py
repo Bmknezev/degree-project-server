@@ -24,7 +24,7 @@ if __name__ == '__main__':
                "issue_date DATE NOT NULL, "
                "due_date DATE NOT NULL, "
                "date_paid DATE, "
-               "status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'payed')), "
+               "status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'paid')), "
                "description VARCHAR(255), "
                "PRIMARY KEY (invoice_number, company)")
 
