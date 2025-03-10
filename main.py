@@ -99,10 +99,11 @@ def get_invoices_handler(data):
     page_size = data.get('pageSize', '')
     sort_by = data.get('sortBy', '')
     sort_order = data.get('sortOrder', '')
+    #restrictions = data.get('restrictions', '')
 
     connection = connect_to_db("company_db")
 
-    total_invoices = get_total_invoices(connection)
+    total_invoices = get_invoice_count(connection)
     total_pages = math.ceil(total_invoices / page_size)  # Calculate total pages
 
 
