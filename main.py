@@ -1,3 +1,4 @@
+import math
 import os
 import easyocr
 from flask import Flask, request, jsonify
@@ -55,11 +56,7 @@ def login_handler(data):
     """
     username = data.get('username', '')
     password = data.get('password', '')
-    # Dummy validation logic – replace with real authentication
-    #if username == 'user' and password == 'pass':
-    #    return {'status': 'success', 'message': 'Login successful'}
-    #else:
-    #    return {'status': 'failure', 'message': 'Invalid credentials'}
+
     connection = connect_to_db("company_db")
     if login(connection, username, password):
         connection.close()
@@ -92,7 +89,7 @@ def confirm_handler(data):
 
 def echo_handler(data):
     """
-    A simple echo handler (useful for testing).
+    A simple echo handler (for testing).
     """
     return data
 
@@ -104,12 +101,18 @@ def get_invoices_handler(data):
     page_size = data.get('pageSize', '')
     sort_by = data.get('sortBy', '')
     sort_order = data.get('sortOrder', '')
+    #restrictions = data.get('restrictions', '')
 
     connection = connect_to_db("company_db")
+
+    total_invoices = get_invoice_count(connection)
+    total_pages = math.ceil(total_invoices / page_size)  # Calculate total pages
+
+
     raw_invoices = get_invoices(connection, page_number, page_size, sort_by, sort_order)
     connection.close()
 
-    # Define column mappings (Ensure these match the actual database columns)
+    # Define column mappings
     column_names = ["invoiceId", "sender", "subtotal", "tax", "totalAmount", "glAccount", "issueDate", "dueDate",
                     "paymentDate", "status", "description"]
 
@@ -118,7 +121,7 @@ def get_invoices_handler(data):
         dict(zip(column_names, row)) for row in raw_invoices
     ]
 
-    return {"invoices": formatted_invoices}  # Now returns proper JSON objects
+    return {"invoices": formatted_invoices, "totalPages": total_pages}
 
 
 

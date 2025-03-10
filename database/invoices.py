@@ -5,9 +5,11 @@ def add_invoice(connection, invoice_number, company, subtotal, tax, total, gl_ac
     values = f"'{invoice_number}', '{company}', {subtotal}, {tax}, {total}, '{gl_account}', '{issue_date}', '{due_date}', '{date_paid}', '{status}', '{description}'"
     return insert_into_table(connection, "invoice", columns, values)
 
-def get_invoices(connection, page_number, page_size, sort_by, sort_order):
-    return select_tuple_from_table(connection, "invoice", f"ORDER BY {sort_by} {sort_order} LIMIT {page_size} OFFSET {page_size * (page_number - 1)}")
+def get_invoices(connection, page_number, page_size, sort_by, sort_order, restrictions = "1"):
+    return select_tuple_from_table(connection, "invoice", f" WHERE {restrictions} ORDER BY {sort_by} {sort_order} LIMIT {page_size} OFFSET {page_size * (page_number - 1)}")
 
+def get_invoice_count(connection):
+    return select_value_from_table(connection, "invoice", "COUNT(*)", fetch_one = True)[0]
 
 
 
@@ -36,3 +38,4 @@ if __name__ == '__main__':
     add_invoice(connection, "2", "company", 200.00, 20.00, 220.00, "gl_account", "2021-02-01", "2021-03-01", "2021-02-15", "awaiting approval", "description")
 
     print(get_invoices(connection, 1, 5, "invoice_number", "ASC"))
+    print(get_invoices(connection, 1, 5, "invoice_number", "DESC", "company LIKE 'company'"))

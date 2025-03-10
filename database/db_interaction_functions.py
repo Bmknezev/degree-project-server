@@ -62,16 +62,20 @@ def insert_into_table(connection, table_name, columns, values, show_execution_su
 
 
     # this function selects all tuples fulfilling an argument from a table in a sqlite3 database
-def select_tuple_from_table(connection, table_name, arguments, show_results = True, show_execution_success = True, fetch_one = False):
+def select_tuple_from_table(connection, table_name, arguments = "", show_results = True, show_execution_success = True, fetch_one = False):
         # this appends the table name and arguments to the SELECT statement
     query = f"SELECT * FROM {table_name} {arguments}"
         # this executes the query
     return execute_query(connection, query, f"{table_name} row selection", show_results = show_results, show_success = show_execution_success)
 
    # this function selects a value from a tuple fulfilling an argument from a table in a sqlite3 database
-def select_value_from_table(connection, table_name, value, arguments, show_results = True, show_execution_success = True, fetch_one = False):
-        # this appends the table name and arguments to the SELECT statement
-    query = f"SELECT {value} FROM {table_name} {arguments}"
+def select_value_from_table(connection, table_name, value, arguments = None, show_results = True, show_execution_success = True, fetch_one = False):
+        # this appends the table name, value, and arguments to the SELECT statement
+    if arguments is None:
+        query = f"SELECT {value} FROM {table_name}"
+    else:
+        query = f"SELECT {value} FROM {table_name} {arguments}"
+
         # this executes the query
     return execute_query(connection, query, f"{table_name} row selection", show_results = show_results, show_success = show_execution_success, fetch_one = fetch_one)
 
