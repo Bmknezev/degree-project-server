@@ -8,6 +8,11 @@ def add_invoice(connection, invoice_number, company, subtotal, tax, total, gl_ac
 def get_invoices(connection, page_number, page_size, sort_by, sort_order):
     return select_tuple_from_table(connection, "invoice", f"ORDER BY {sort_by} {sort_order} LIMIT {page_size} OFFSET {page_size * (page_number - 1)}")
 
+def get_total_invoices(connection):
+    cursor = connection.cursor()
+    cursor.execute("SELECT COUNT(*) FROM invoice")
+    total = cursor.fetchone()[0]
+    return total
 
 
 
