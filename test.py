@@ -76,69 +76,100 @@ def splitText(res):
     for i, line in enumerate(lines):
         if "tax" in line.lower():
             tax = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)", line)
-            data["tax"].append(tax)
+            if tax:
+                data["tax"].append(tax[0])
         if "total" in line.lower():
             total = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)", line, flags=re.I)
             if not total:
                 total = lines[i+1]
                 total = total[1:]
-            data["total"].append(total)
+            if total:
+                data["total"].append(total[0])
         if "invoice #" in line.lower():
             invoice_num = re.findall(r"# (.*)", line)
-            data["invoice_num"].append(invoice_num)
+            if invoice_num:
+                data["invoice_num"].append(invoice_num[0])
         if "date" in line.lower():
             date = re.findall(r"\d+l\d+l\d+", line)
-            data["date"].append(date)
+            if date:
+                data["date"].append(date[0])
     return data
 
 
+def OCR(file):
 
-reader = easyocr.Reader(['en'])
-
-file = "uploads/invoice1.png"
-
-ocr_results = reader.readtext(file, detail=1, paragraph=True)
-d = extract_text(ocr_results)
-#display_image(draw_bounding_boxes(file,ocr_results))
-
-result = reader.readtext(file)
-
-data = []
-for entry in result:
-    coordinates, text, confidence = entry
-    (tl_x, tl_y), (tr_x, tr_y), (br_x, br_y), (bl_x, bl_y) = coordinates
-    data.append([text, tl_x, tl_y, tr_x, tr_y, bl_x, bl_y, br_x, br_y, confidence])
-
-df = pd.DataFrame(data, columns=['text', 'tl_x', 'tl_y', 'tr_x', 'tr_y', 'bl_x', 'bl_y', 'br_x', 'br_y', 'confidence'])
-
-df['mid_y'] = (df['tl_y'] + df['bl_y']) / 2
-
-#  DBSCAN Clustering algo
-eps = 5  # !!!!!!! CHANGE IT IF NEEDED !!!!!! max distance to be on one line
-dbscan = DBSCAN(eps=eps, min_samples=1, metric='euclidean')
-df['line_cluster'] = dbscan.fit_predict(df[['mid_y']])
-
-df_sorted = df.sort_values(by=['line_cluster', 'tl_x'])
-grouped_texts = df_sorted.groupby('line_cluster')['text'].apply(lambda words: " ".join(words)).tolist()
-extracted_text = "\n".join(grouped_texts)
+    reader = easyocr.Reader(['en'], gpu=True)
 
 
+    ocr_results = reader.readtext(file, detail=1, paragraph=True)
+    d = extract_text(ocr_results)
+    #display_image(draw_bounding_boxes(file,ocr_results))
 
-x = splitText(extracted_text)
+    result = reader.readtext(file)
 
-combined = {}
+    data = []
+    for entry in result:
+        coordinates, text, confidence = entry
+        (tl_x, tl_y), (tr_x, tr_y), (br_x, br_y), (bl_x, bl_y) = coordinates
+        data.append([text, tl_x, tl_y, tr_x, tr_y, bl_x, bl_y, br_x, br_y, confidence])
 
-for key, value in d.items():
-    combined[key] = [value]
+    df = pd.DataFrame(data, columns=['text', 'tl_x', 'tl_y', 'tr_x', 'tr_y', 'bl_x', 'bl_y', 'br_x', 'br_y', 'confidence'])
 
-for key,value in x.items():
-    if value:
-        if key in combined:
-            combined[key].append(value)
-        else:
-            combined[key] = [value]
+    df['mid_y'] = (df['tl_y'] + df['bl_y']) / 2
+
+    #  DBSCAN Clustering algo
+    eps = 5  # !!!!!!! CHANGE IT IF NEEDED !!!!!! max distance to be on one line
+    dbscan = DBSCAN(eps=eps, min_samples=1, metric='euclidean')
+    df['line_cluster'] = dbscan.fit_predict(df[['mid_y']])
+
+    df_sorted = df.sort_values(by=['line_cluster', 'tl_x'])
+    grouped_texts = df_sorted.groupby('line_cluster')['text'].apply(lambda words: " ".join(words)).tolist()
+    extracted_text = "\n".join(grouped_texts)
 
 
-print(combined)
+
+    x = splitText(extracted_text)
+
+    combined = {}
+
+
+
+    for key, value in d.items():
+        combined[key] = value
+
+    for key,value in x.items():
+        if value:
+            if key in combined:
+                combined[key].append(value[0])
+            else:
+                combined[key] = value[0]
+
+
+    for key, x in combined.items():
+        for i in x:
+            if not i:
+                combined[key].remove(i)
+
+    for i in combined['invoice_num']:
+        if not re.search(r'\d', i):
+            combined['invoice_num'].remove(i)
+
+    for i in combined['total']:
+        if re.search(r'[a-z]', i):
+            combined['total'].remove(i)
+
+    for i in combined['tax']:
+        if re.search(r'[a-z]', i):
+            combined['tax'].remove(i)
+
+
+    data = {}
+
+    for key, item in combined.items():
+        if item:
+            data[key] = item.pop()
+
+    return data
+
 # basically just go by location if not grouped.
 

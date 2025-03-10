@@ -4,7 +4,9 @@ from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 import re
 import string
+import cv2
 
+import test
 from database import invoices
 from database.user_accounts import *
 from database.invoices import *
@@ -202,18 +204,41 @@ def upload_file():
         return error_resp, error_code
 
     try:
-        # Perform OCR on the saved file
-        ocr_results = reader.readtext(file_path)
-        # Concatenate the detected text segments into one string
-        extracted_text = " ".join([text for (_, text, _) in ocr_results])
+        data = test.OCR(file_path)
 
-        # split text based on keywords and send to json object
-        key = []
-        j = split_string_by_keywords(extracted_text, key)
-
-        return j, 200
+        return data, 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+
+
+def draw_bounding_boxes(image_path, results):
+        # Load the image using OpenCV
+        image = cv2.imread(image_path)
+
+        # Loop over each detected text result
+        for result in results:
+            bbox, text, _ = result  # Bounding box and text
+
+            # Extract coordinates from the bounding box
+            (tl_x, tl_y), (tr_x, tr_y), (br_x, br_y), (bl_x, bl_y) = bbox
+
+            # Draw a rectangle around the detected text
+            cv2.rectangle(image, (int(tl_x), int(tl_y)), (int(br_x), int(br_y)), (0, 255, 0), 2)
+
+            # Optionally, put the detected text above the bounding box
+            cv2.putText(image, text, (int(tl_x), int(tl_y) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
+        return image
+
+def display_image(image):
+        # Display the image in a window
+        cv2.imshow('Invoice with Bounding Boxes', image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
 
 
 
