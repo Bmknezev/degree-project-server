@@ -29,21 +29,17 @@ def display_image(image):
 
 def extract_text(res):
     data = {
-        "bill_to": [],
         "invoice_num":[],
         "total":[],
         "tax":[],
-        "date":[]
+        "date":[],
+        "due":[],
+        "subTotal":[],
+        "vendor":[]
     }
 
     for x in res:
         s = x[1]
-        if "bill to" in s.lower():
-            bill_to = s[8:]
-            data["bill_to"].append(bill_to)
-        if "billed to" in s.lower():
-            bill_to = s[9:]
-            data["bill_to"].append(bill_to)
         if "invoice number" in s.lower():
             invoice_num = s[14:]
             data["invoice_num"].append(invoice_num)
@@ -59,18 +55,34 @@ def extract_text(res):
             data["tax"].append(tax)
         if "date" in s.lower():
             date = re.findall(r"\d+l\d+l\d+", s)
-            data["date"].append(date)
+            if date:
+                data["date"].append(date)
+        if re.search(r'\d+[ ](?:[A-Za-z0-9.-]+[ ]?)+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Dr|Rd|Blvd|Ln|St)\.?',s):
+            if not re.search(r'bill(?:ed)? to',s ,re.IGNORECASE):
+                if not re.search(r'(ship|sell|sold) to',s, re.IGNORECASE):
+                    vendor = re.findall(r'[a-z ]+',s, re.IGNORECASE)
+                    if vendor:
+                        vend = vendor[0]
+                        if "invoice" in vend.lower():
+                            vend = vend[8:]
+                        data["vendor"].append(vend)
+        if re.match(r"sub(t|l)o(t|l)a(t|l)",s,re.IGNORECASE):
+            subtotal = re.findall(r'\d+\.?\d{0,2}',s)
+            if subtotal:
+                data["subTotal"].append(subtotal[0])
 
     return data
 
 
 def splitText(res):
     data = {
-        "bill_to": [],
-        "invoice_num": [],
-        "total": [],
-        "tax": [],
-        "date": []
+        "invoice_num":[],
+        "total":[],
+        "tax":[],
+        "date":[],
+        "due":[],
+        "subTotal":[],
+        "vendor":[]
     }
     lines = res.splitlines()
     for i, line in enumerate(lines):
@@ -93,6 +105,10 @@ def splitText(res):
             date = re.findall(r"\d+l\d+l\d+", line)
             if date:
                 data["date"].append(date[0])
+        if re.match(r"sub(t|l)o(t|l)a(t|l)",line,re.IGNORECASE):
+            subtotal = re.findall(r"\d+\.?\d{0,2}",line)
+            if subtotal:
+                data["subTotal"].append(subtotal[0])
     return data
 
 
@@ -129,7 +145,10 @@ def OCR(file):
 
 
     x = splitText(extracted_text)
+    print(d)
+    print(x)
 
+#combining
     combined = {}
 
 
@@ -145,6 +164,7 @@ def OCR(file):
                 combined[key] = value[0]
 
 
+#cleaning
     for key, x in combined.items():
         for i in x:
             if not i:
@@ -163,6 +183,7 @@ def OCR(file):
             combined['tax'].remove(i)
 
 
+
     data = {}
 
     for key, item in combined.items():
@@ -173,3 +194,5 @@ def OCR(file):
 
 # basically just go by location if not grouped.
 
+d = OCR('uploads/invoice1.png')
+print(d)
