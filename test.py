@@ -35,7 +35,8 @@ def extract_text(res):
         "date":[],
         "due":[],
         "subTotal":[],
-        "vendor":[]
+        "vendor":[],
+        "email":[]
     }
 
     for x in res:
@@ -82,7 +83,8 @@ def splitText(res):
         "date":[],
         "due":[],
         "subTotal":[],
-        "vendor":[]
+        "vendor":[],
+        "email":[]
     }
     lines = res.splitlines()
     for i, line in enumerate(lines):
@@ -109,6 +111,17 @@ def splitText(res):
             subtotal = re.findall(r"\d+\.?\d{0,2}",line)
             if subtotal:
                 data["subTotal"].append(subtotal[0])
+        if re.match(r"@",line):
+            print("email")
+            email = re.findall(r"\w+@\w+\.?\w+",line)
+            e = email[0]
+            if e:
+                if not re.match(r"\.",e):
+                    if re.match(r"ca",e):
+                        e = e[:3] + "." + e[len(e)-3:]
+                    if re.match(r"com|net",e):
+                        e = e[:4] + "." + e[len(e)-4:]
+                data["email"].append(e)
     return data
 
 
@@ -134,7 +147,7 @@ def OCR(file):
     df['mid_y'] = (df['tl_y'] + df['bl_y']) / 2
 
     #  DBSCAN Clustering algo
-    eps = 5  # !!!!!!! CHANGE IT IF NEEDED !!!!!! max distance to be on one line
+    eps = 5
     dbscan = DBSCAN(eps=eps, min_samples=1, metric='euclidean')
     df['line_cluster'] = dbscan.fit_predict(df[['mid_y']])
 
@@ -145,9 +158,9 @@ def OCR(file):
 
 
     x = splitText(extracted_text)
-    print(d)
-    print(x)
 
+    #print(d)
+    #print(x)
 #combining
     combined = {}
 
@@ -194,5 +207,5 @@ def OCR(file):
 
 # basically just go by location if not grouped.
 
-d = OCR('uploads/invoice1.png')
-print(d)
+#d = OCR('uploads/invoice2.png')
+#print(d)
