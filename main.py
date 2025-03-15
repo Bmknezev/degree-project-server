@@ -101,15 +101,27 @@ def get_invoices_handler(data):
     page_size = data.get('pageSize', '')
     sort_by = data.get('sortBy', '')
     sort_order = data.get('sortOrder', '')
-    #restrictions = data.get('restrictions', '')
+    status_filter  = data.get('statusFilter', '')
 
     connection = connect_to_db("company_db")
+
+    # Convert status filter into SQL restriction
+    if status_filter == "Paid Invoices":
+        restrictions = "status LIKE 'paid'"
+    elif status_filter == "Waiting for Approval":
+        restrictions = "status LIKE 'awaiting approval'"
+    elif status_filter == "Waiting for Payment":
+        restrictions = "status LIKE 'awaiting payment'"
+    elif status_filter == "Unpaid Invoices":
+        restrictions = "status IN ('awaiting approval', 'awaiting payment')"
+    else:
+        restrictions = "1"  # No filtering (default: show all invoices)
 
     total_invoices = get_invoice_count(connection)
     total_pages = math.ceil(total_invoices / page_size)  # Calculate total pages
 
 
-    raw_invoices = get_invoices(connection, page_number, page_size, sort_by, sort_order)
+    raw_invoices = get_invoices(connection, page_number, page_size, sort_by, sort_order, restrictions)
     connection.close()
 
     # Define column mappings
@@ -171,6 +183,7 @@ def api_message():
 
     try:
         response = handler(message_data)
+        print(message_data)
         return jsonify(response), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
