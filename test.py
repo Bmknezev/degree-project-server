@@ -47,13 +47,14 @@ def extract_text(res):
         if "invoice #" in s.lower():
             invoice_num = s[9:]
             data["invoice_num"].append(invoice_num)
-        if "total" in s.lower():
-            total = s[5:]
-            data["total"].append(total)
+        if re.match(r"(^| )total",s,re.IGNORECASE):
+            total = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)",s)
+            if total:
+                data["total"].append(total[0])
         if "tax" in s.lower():
-            #idk for this one
-            tax = s
-            data["tax"].append(tax)
+            tax = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)",s)
+            if tax:
+                data["tax"].append(tax[0])
         if "date" in s.lower():
             date = re.findall(r"\d+l\d+l\d+", s)
             if date:
@@ -111,17 +112,17 @@ def splitText(res):
             subtotal = re.findall(r"\d+\.?\d{0,2}",line)
             if subtotal:
                 data["subTotal"].append(subtotal[0])
-        if re.match(r"@",line):
-            print("email")
-            email = re.findall(r"\w+@\w+\.?\w+",line)
-            e = email[0]
-            if e:
-                if not re.match(r"\.",e):
-                    if re.match(r"ca",e):
-                        e = e[:3] + "." + e[len(e)-3:]
-                    if re.match(r"com|net",e):
-                        e = e[:4] + "." + e[len(e)-4:]
-                data["email"].append(e)
+        if "@" in line:
+            email = re.findall(r"\w+@\w+\.?\w+",line,re.IGNORECASE)
+            if email:
+                e = email[0]
+                if e:
+                    if not re.match(r"\.",e):
+                        if "ca" in e:
+                            e = e[:len(e)-2] + "." + e[len(e)-2:]
+                        if ("com" or "net") in e:
+                            e = e[:len(e)-3] + "." + e[len(e)-3:]
+                    data["email"].append(e)
     return data
 
 
@@ -207,5 +208,5 @@ def OCR(file):
 
 # basically just go by location if not grouped.
 
-#d = OCR('uploads/invoice2.png')
-#print(d)
+d = OCR('uploads/invoice2.png')
+print(d)
