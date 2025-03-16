@@ -208,5 +208,5 @@ def OCR(file):
 
 # basically just go by location if not grouped.
 
-d = OCR('uploads/invoice2.png')
-print(d)
+#d = OCR('uploads/invoice2.png')
+#print(d)
