@@ -47,6 +47,9 @@ def extract_text(res):
         if "invoice #" in s.lower():
             invoice_num = s[9:]
             data["invoice_num"].append(invoice_num)
+        if "invoice#" in s.lower():
+            invoice_num = s[8:]
+            data["invoice_num"].append(invoice_num)
         if re.match(r"(^| )total",s,re.IGNORECASE):
             total = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)",s)
             if total:
@@ -56,13 +59,19 @@ def extract_text(res):
             if tax:
                 data["tax"].append(tax[0])
         if "date" in s.lower():
-            date = re.findall(r"\d+l\d+l\d+", s)
-            if date:
-                data["date"].append(date)
-        if re.search(r'\d+[ ](?:[A-Za-z0-9.-]+[ ]?)+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Dr|Rd|Blvd|Ln|St)\.?',s):
+            d = re.findall(r"\d+[\/l\- ][\da-z]+[\/l\- ]\d+",s,re.IGNORECASE)
+            if d:
+                dd = d[0]
+                if "l" in dd:
+                    dd.replace("l","/")
+                if "due" in s:
+                    data["due"].append(dd)
+                else:
+                    data["date"].append(dd)
+        if re.search(r'\d+[ ](?:[A-Za-z0-9.-]+)+\s(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Dr|Rd|Blvd|Ln|St)\.?',s,re.IGNORECASE):
             if not re.search(r'bill(?:ed)? to',s ,re.IGNORECASE):
                 if not re.search(r'(ship|sell|sold) to',s, re.IGNORECASE):
-                    vendor = re.findall(r'[a-z ]+',s, re.IGNORECASE)
+                    vendor = re.findall(r'[a-z& ]+',s, re.IGNORECASE)
                     if vendor:
                         vend = vendor[0]
                         if "invoice" in vend.lower():
@@ -93,8 +102,8 @@ def splitText(res):
             tax = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)", line)
             if tax:
                 data["tax"].append(tax[0])
-        if "total" in line.lower():
-            total = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)", line, flags=re.I)
+        if re.match(r"(^| )total", line, re.IGNORECASE):
+            total = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)", line, flags=re.IGNORECASE)
             if not total:
                 total = lines[i+1]
                 total = total[1:]
@@ -104,10 +113,26 @@ def splitText(res):
             invoice_num = re.findall(r"# (.*)", line)
             if invoice_num:
                 data["invoice_num"].append(invoice_num[0])
+        if "invoice number" in line.lower():
+            invoice_num = re.findall(r"# ([\w\d\- ]+)",line)
+            if invoice_num:
+                i = invoice_num[0]
+                data["invoice_num"].append(i)
+        if "invoice#" in line.lower():
+            invoice_num = re.findall(r"# ([\w\d\- ]+)",line)
+            if invoice_num:
+                i = invoice_num[0]
+                data["invoice_num"].append(i)
         if "date" in line.lower():
-            date = re.findall(r"\d+l\d+l\d+", line)
-            if date:
-                data["date"].append(date[0])
+            d = re.findall(r"\d+[\/l\- ][\da-z]+[\/l\- ]\d+", line, re.IGNORECASE)
+            if d:
+                dd = d[0]
+                if "l" in dd:
+                    dd.replace("l", "/")
+                if "due" in line.lower():
+                    data["due"].append(dd)
+                else:
+                    data["date"].append(dd)
         if re.match(r"sub(t|l)o(t|l)a(t|l)",line,re.IGNORECASE):
             subtotal = re.findall(r"\d+\.?\d{0,2}",line)
             if subtotal:
@@ -160,8 +185,8 @@ def OCR(file):
 
     x = splitText(extracted_text)
 
-    #print(d)
-    #print(x)
+    print(d)
+    print(x)
 #combining
     combined = {}
 
@@ -208,5 +233,5 @@ def OCR(file):
 
 # basically just go by location if not grouped.
 
-#d = OCR('uploads/invoice2.png')
+#d = OCR('uploads/elements-of-invoice.png')
 #print(d)
