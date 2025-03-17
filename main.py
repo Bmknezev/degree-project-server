@@ -1,5 +1,7 @@
 import math
 import os
+import shutil
+
 import easyocr
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
@@ -126,16 +128,59 @@ def get_invoices_handler(data):
 
     return {"invoices": formatted_invoices, "totalPages": total_pages}
 
+def add_invoice_handler(data):
+    connection = connect_to_db("company_db")
+    add_invoice(
+        connection,
+        invoice_number=data['invoiceNum'],
+        company=data['vendor'],
+        total=data['total'],
+        gl_account=data['GL'],
+        email=data['email'],
+        issue_date=data['issueDate'],
+        due_date=data['due'],
+        date_paid="NULL",
+        status="awaiting approval",
+        subtotal=data.get('subTotal', "NULL"),
+        tax=data.get('tax', "NULL"),
+        description="NULL"
+    )
+
+    # Get internal_id of last inserted row
+    cursor = connection.cursor()
+    cursor.execute("SELECT last_insert_rowid()")
+    internal_id = cursor.fetchone()[0]
+
+    connection.close()
+
+    # Paths for files
+    temp_filename = data.get('tempFilename')
+    if temp_filename:
+        old_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+        new_folder = os.path.join(app.config['UPLOAD_FOLDER'], "..", "stored_invoices")
+
+        # Ensure destination folder exists
+        os.makedirs(new_folder, exist_ok=True)
+
+        new_filename = f"{internal_id}.png"
+        new_path = os.path.join(new_folder, new_filename)
+
+        if os.path.exists(old_path):
+            shutil.move(old_path, new_path)
+        else:
+            return {"status": "failure", "message": f"File {temp_filename} not found in uploads folder."}
+
+    return {"status": "success", "message": "Invoice added successfully."}
 
 
 # Map message types to their handlers.
-# New message types can be added here.
 MESSAGE_HANDLERS = {
     'LOGIN': login_handler,
     'SEND_INVOICE': invoice_handler,
     'CONFIRM_INVOICE': confirm_handler,
     'ECHO': echo_handler,  # For sample/test messages
     'GET_INVOICES': get_invoices_handler,
+    'ADD_INVOICE': add_invoice_handler
 }
 
 
