@@ -2,30 +2,13 @@ import easyocr
 import cv2
 import re
 import pandas as pd
+import requests
 from sklearn.cluster import DBSCAN
+import ollama
 
 
-def draw_bounding_boxes(image_path, results):
-        # Load the image using OpenCV
-        image = cv2.imread(image_path)
 
-        # Loop over each detected text result
-        for result in results:
-            bbox, text = result  # Bounding box and text
 
-            # Extract coordinates from the bounding box
-            (tl_x, tl_y), (tr_x, tr_y), (br_x, br_y), (bl_x, bl_y) = bbox
-
-            # Draw a rectangle around the detected text
-            cv2.rectangle(image, (int(tl_x), int(tl_y)), (int(br_x), int(br_y)), (0, 255, 0), 2)
-
-        return image
-
-def display_image(image):
-        # Display the image in a window
-        cv2.imshow('Invoice with Bounding Boxes', image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
 
 def extract_text(res):
     data = {
@@ -152,14 +135,15 @@ def splitText(res):
 
 
 def OCR(file):
-
+    print("First OCR Pass")
     reader = easyocr.Reader(['en'], gpu=True)
 
 
     ocr_results = reader.readtext(file, detail=1, paragraph=True)
     d = extract_text(ocr_results)
-    #display_image(draw_bounding_boxes(file,ocr_results))
+    print(d)
 
+    print("Second OCR Pass")
     result = reader.readtext(file)
 
     data = []
@@ -185,15 +169,16 @@ def OCR(file):
 
     x = splitText(extracted_text)
 
-    print(d)
+
     print(x)
+
 #combining
     combined = {}
 
 
-
     for key, value in d.items():
         combined[key] = value
+
 
     for key,value in x.items():
         if value:
@@ -204,7 +189,10 @@ def OCR(file):
 
 
 #cleaning
+    missing = 0
     for key, x in combined.items():
+        if not x:
+            missing = missing + 1
         for i in x:
             if not i:
                 combined[key].remove(i)
@@ -223,15 +211,53 @@ def OCR(file):
 
 
 
+
+    # call for ai for any values not extracted manually
+    if missing > 0:
+        try:
+            response = requests.get("http://localhost:11434")
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            online = True
+            print("llama AI Online, Attempting To Extract",missing, "Missing Values")
+        except requests.exceptions.RequestException:
+            online = False
+            print("llama AI Offline, Some Values May Be Missing")
+
+        if online:
+            for key in combined:
+                if not combined[key]:
+                    item = aiExtraction(file,key)
+                    if "NULL" not in item:
+                        combined[key].append(item)
+
     data = {}
 
     for key, item in combined.items():
         if item:
-            data[key] = item.pop()
+            t = item.pop()
+            if "$" in t:
+                t = t[1:]
+            data[key] = t
 
+    print("Done")
     return data
 
-# basically just go by location if not grouped.
 
-#d = OCR('uploads/elements-of-invoice.png')
+def aiExtraction(img, t):
+    text = "you will only give me exactly what is written in the picture, no extra characters. if there is no answer, respond with NULL. what is the "
+    text = text + t
+    res = ollama.chat(
+        model="llama3.2-vision",
+        messages=[
+            {
+                'role':'user',
+                'content':text,
+                'images':[img]
+            }
+        ]
+    )
+    return res['message']['content']
+
+
+#d = OCR('uploads/invoice1.png')
 #print(d)
