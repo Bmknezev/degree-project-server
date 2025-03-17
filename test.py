@@ -47,7 +47,7 @@ def extract_text(res):
                 dd = d[0]
                 if "l" in dd:
                     dd.replace("l","/")
-                if "due" in s:
+                if "due" in s.lower():
                     data["due"].append(dd)
                 else:
                     data["date"].append(dd)
