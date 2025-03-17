@@ -108,13 +108,13 @@ def get_invoices_handler(data):
     connection.close()
 
     # Define column mappings
-    column_names = ["invoiceId", "sender", "subtotal", "tax", "totalAmount", "glAccount", "issueDate", "dueDate",
-                    "paymentDate", "status", "description"]
+    column_names = [
+        "invoice_id", "invoice_number", "company", "subtotal", "tax", "total",
+        "gl_account", "email", "issue_date", "due_date", "date_paid", "status", "description"
+    ]
 
     # Convert raw database rows into JSON objects
-    formatted_invoices = [
-        dict(zip(column_names, row)) for row in raw_invoices
-    ]
+    formatted_invoices = [dict(zip(column_names, row)) for row in raw_invoices]
 
     return {"invoices": formatted_invoices, "totalPages": total_pages}
 
