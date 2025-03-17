@@ -172,16 +172,39 @@ def add_invoice_handler(data):
 
     return {"status": "success", "message": "Invoice added successfully."}
 
+import base64
+from flask import jsonify
+import os
 
-# Map message types to their handlers.
+def get_invoice_image_handler(data):
+    invoice_id = data.get('invoiceId', '')
+
+    image_folder = "./stored_invoices"
+    image_path = os.path.join(image_folder, f"{invoice_id}.png")
+
+    if not os.path.exists(image_path):
+        return {'status': 'failure', 'message': 'Invoice image not found'}
+
+    try:
+        with open(image_path, "rb") as img_file:
+            encoded_image = base64.b64encode(img_file.read()).decode('utf-8')
+
+        return {'status': 'success', 'imageData': encoded_image}
+
+    except Exception as e:
+        return {'status': 'failure', 'message': str(e)}
+
+# Add handler mapping
 MESSAGE_HANDLERS = {
     'LOGIN': login_handler,
     'SEND_INVOICE': invoice_handler,
     'CONFIRM_INVOICE': confirm_handler,
-    'ECHO': echo_handler,  # For sample/test messages
+    'ECHO': echo_handler,
     'GET_INVOICES': get_invoices_handler,
-    'ADD_INVOICE': add_invoice_handler
+    'ADD_INVOICE': add_invoice_handler,
+    'GET_INVOICE_IMAGE': get_invoice_image_handler,
 }
+
 
 
 # -----------------------------------------------------------------------------
