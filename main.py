@@ -109,7 +109,7 @@ def get_invoices_handler(data):
 
     # Define column mappings
     column_names = [
-        "invoice_id", "invoice_number", "company", "subtotal", "tax", "total",
+        "internal_id", "invoice_number", "company", "subtotal", "tax", "total",
         "gl_account", "email", "issue_date", "due_date", "date_paid", "status", "description"
     ]
 
@@ -175,9 +175,9 @@ def api_message():
 # -----------------------------------------------------------------------------
 # File Upload Endpoint for OCR
 # -----------------------------------------------------------------------------
-def save_uploaded_file(req):
+def save_uploaded_file(req, filename):
     """
-    Helper function to retrieve and save an uploaded file.
+    Helper function to retrieve and save an uploaded file with custom filename.
     """
     if 'file' not in req.files:
         return None, jsonify({'error': 'No file part in the request'}), 400
@@ -186,8 +186,8 @@ def save_uploaded_file(req):
     if file.filename == '':
         return None, jsonify({'error': 'No selected file'}), 400
 
-    filename = secure_filename(file.filename)
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    secure_name = secure_filename(filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_name)
     file.save(file_path)
     return file_path, None, None
 
@@ -196,18 +196,42 @@ def save_uploaded_file(req):
 def upload_file():
     """
     Endpoint to handle file uploads (for OCR).
-    The uploaded file is saved, processed with EasyOCR, and the extracted text is returned.
+    Uploaded file is saved with internal_id as filename.
     """
-    file_path, error_resp, error_code = save_uploaded_file(request)
-    if error_resp:
-        return error_resp, error_code
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    connection = connect_to_db("company_db")
+    cursor = connection.cursor()
 
     try:
-        data = test.OCR(file_path)
+        # First, insert a new record into your database to generate internal_id
+        cursor.execute("INSERT INTO invoice DEFAULT VALUES")
+        internal_id = cursor.lastrowid
+        connection.commit()
 
-        return data, 200
+        # Generate filename using internal_id
+        uploaded_file = request.files['file']
+        extension = os.path.splitext(uploaded_file.filename)[1]  # keep original file extension
+        new_filename = f"{internal_id}{extension}"
+
+        # Save file with the new filename
+        file_path, error_resp, error_code = save_uploaded_file(request, new_filename)
+        if error_resp:
+            connection.rollback()
+            return error_resp, error_code
+
+        # Process OCR (assuming your `test.OCR` method)
+        ocr_data = test.OCR(file_path)
+
+        return {"invoice_id": internal_id, "data": ocr_data}, 200
+
     except Exception as e:
+        connection.rollback()
         return jsonify({'error': str(e)}), 500
+
+    finally:
+        connection.close()
 
 
 
