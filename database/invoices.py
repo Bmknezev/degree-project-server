@@ -1,6 +1,6 @@
 from database.db_interaction_functions import *
 
-def add_invoice(connection, invoice_number, company, total, gl_account, email, issue_date, due_date, date_paid, status, subtotal = None, tax = None, description = None):
+def add_invoice(connection, invoice_number, company, total, gl_account, email, issue_date, due_date, date_paid, status, subtotal = "NULL", tax = "NULL", description = "NULL"):
     columns = "invoice_number, company, subtotal, tax, total, gl_account, email, issue_date, due_date, date_paid, status, description"
     values = f"'{invoice_number}', '{company}', {subtotal}, {tax}, {total}, '{gl_account}', '{email}','{issue_date}', '{due_date}', '{date_paid}', '{status}', '{description}'"
     return insert_into_table(connection, "invoice", columns, values)
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     # Initialize the connection to the database
     connection = connect_to_db("database")
     table_name = "invoice"
-    columns = ("invoice_id INTEGER PRIMARY KEY, "
+    columns = ("internal_id INTEGER PRIMARY KEY, "
                "invoice_number VARCHAR(255) NOT NULL, "
                "company VARCHAR(25) NOT NULL, "
                "subtotal DECIMAL(10, 2) CHECK (subtotal >= 0), "
