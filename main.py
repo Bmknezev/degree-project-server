@@ -11,6 +11,7 @@ import test
 from database import invoices
 from database.user_accounts import *
 from database.invoices import *
+import subprocess
 
 # Initialize the Flask app and EasyOCR reader
 app = Flask(__name__)
@@ -21,6 +22,13 @@ UPLOAD_FOLDER = './uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+
+# try to initialize ollama
+try:
+    print("Starting Ollama")
+    os.popen(r"ollama.exe serve")
+except:
+    print("unable to start ollama")
 
 
 
@@ -300,4 +308,4 @@ def sample():
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     print("starting server...")
-    app.run(host="0.0.0.0", port=8081, debug=True)
+    app.run(host="0.0.0.0", port=8081, debug=False)
