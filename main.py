@@ -194,6 +194,47 @@ def get_invoice_image_handler(data):
     except Exception as e:
         return {'status': 'failure', 'message': str(e)}
 
+
+def get_invoice_by_ids_handler(data):
+    """
+    Get a list of specific invoices by internal_id list.
+    """
+    invoice_ids = data.get("invoiceIds", [])
+
+    if not isinstance(invoice_ids, list) or not invoice_ids:
+        return {
+            "status": "error",
+            "message": "Missing or invalid 'invoiceIds'. Expected a non-empty list."
+        }
+
+    connection = connect_to_db("company_db")
+
+    try:
+        raw_invoices = get_invoices_by_ids(connection, invoice_ids)
+
+        # Define column mappings (must match your DB schema order)
+        column_names = [
+            "internal_id", "invoice_number", "company", "subtotal", "tax", "total",
+            "gl_account", "email", "issue_date", "due_date", "date_paid", "status", "description"
+        ]
+
+        formatted_invoices = [dict(zip(column_names, row)) for row in raw_invoices]
+
+        return {
+            "status": "success",
+            "invoices": formatted_invoices
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to fetch invoices: {str(e)}"
+        }
+
+    finally:
+        connection.close()
+
+
 # Add handler mapping
 MESSAGE_HANDLERS = {
     'LOGIN': login_handler,
@@ -203,6 +244,7 @@ MESSAGE_HANDLERS = {
     'GET_INVOICES': get_invoices_handler,
     'ADD_INVOICE': add_invoice_handler,
     'GET_INVOICE_IMAGE': get_invoice_image_handler,
+    'GET_INVOICES_BY_IDS': get_invoice_by_ids_handler
 }
 
 
