@@ -1,5 +1,7 @@
 import math
 import os
+import shutil
+
 import easyocr
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
@@ -11,6 +13,7 @@ import test
 from database import invoices
 from database.user_accounts import *
 from database.invoices import *
+import subprocess
 
 # Initialize the Flask app and EasyOCR reader
 app = Flask(__name__)
@@ -21,6 +24,13 @@ UPLOAD_FOLDER = './uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+
+# try to initialize ollama
+try:
+    print("Starting Ollama")
+    os.popen(r"ollama.exe serve")
+except:
+    print("unable to start ollama")
 
 
 
@@ -109,7 +119,7 @@ def get_invoices_handler(data):
 
     # Define column mappings
     column_names = [
-        "invoice_id", "invoice_number", "company", "subtotal", "tax", "total",
+        "internal_id", "invoice_number", "company", "subtotal", "tax", "total",
         "gl_account", "email", "issue_date", "due_date", "date_paid", "status", "description"
     ]
 
@@ -118,17 +128,125 @@ def get_invoices_handler(data):
 
     return {"invoices": formatted_invoices, "totalPages": total_pages}
 
+def add_invoice_handler(data):
+    connection = connect_to_db("company_db")
+    add_invoice(
+        connection,
+        invoice_number=data['invoiceNum'],
+        company=data['vendor'],
+        total=data['total'],
+        gl_account=data['GL'],
+        email=data['email'],
+        issue_date=data['issueDate'],
+        due_date=data['due'],
+        date_paid="NULL",
+        status="awaiting approval",
+        subtotal=data.get('subTotal', "NULL"),
+        tax=data.get('tax', "NULL"),
+        description="NULL"
+    )
+
+    # Get internal_id of last inserted row
+    cursor = connection.cursor()
+    cursor.execute("SELECT last_insert_rowid()")
+    internal_id = cursor.fetchone()[0]
+
+    connection.close()
+
+    # Paths for files
+    temp_filename = data.get('tempFilename')
+    if temp_filename:
+        old_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
+        new_folder = os.path.join(app.config['UPLOAD_FOLDER'], "..", "stored_invoices")
+
+        # Ensure destination folder exists
+        os.makedirs(new_folder, exist_ok=True)
+
+        new_filename = f"{internal_id}.png"
+        new_path = os.path.join(new_folder, new_filename)
+
+        if os.path.exists(old_path):
+            shutil.move(old_path, new_path)
+        else:
+            return {"status": "failure", "message": f"File {temp_filename} not found in uploads folder."}
+
+    return {"status": "success", "message": "Invoice added successfully."}
+
+import base64
+from flask import jsonify
+import os
+
+def get_invoice_image_handler(data):
+    invoice_id = data.get('invoiceId', '')
+
+    image_folder = "./stored_invoices"
+    image_path = os.path.join(image_folder, f"{invoice_id}.png")
+
+    if not os.path.exists(image_path):
+        return {'status': 'failure', 'message': 'Invoice image not found'}
+
+    try:
+        with open(image_path, "rb") as img_file:
+            encoded_image = base64.b64encode(img_file.read()).decode('utf-8')
+
+        return {'status': 'success', 'imageData': encoded_image}
+
+    except Exception as e:
+        return {'status': 'failure', 'message': str(e)}
 
 
-# Map message types to their handlers.
-# New message types can be added here.
+def get_invoice_by_ids_handler(data):
+    """
+    Get a list of specific invoices by internal_id list.
+    """
+    invoice_ids = data.get("invoiceIds", [])
+
+    if not isinstance(invoice_ids, list) or not invoice_ids:
+        return {
+            "status": "error",
+            "message": "Missing or invalid 'invoiceIds'. Expected a non-empty list."
+        }
+
+    connection = connect_to_db("company_db")
+
+    try:
+        raw_invoices = get_invoices_by_ids(connection, invoice_ids)
+
+        # Define column mappings (must match your DB schema order)
+        column_names = [
+            "internal_id", "invoice_number", "company", "subtotal", "tax", "total",
+            "gl_account", "email", "issue_date", "due_date", "date_paid", "status", "description"
+        ]
+
+        formatted_invoices = [dict(zip(column_names, row)) for row in raw_invoices]
+
+        return {
+            "status": "success",
+            "invoices": formatted_invoices
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to fetch invoices: {str(e)}"
+        }
+
+    finally:
+        connection.close()
+
+
+# Add handler mapping
 MESSAGE_HANDLERS = {
     'LOGIN': login_handler,
     'SEND_INVOICE': invoice_handler,
     'CONFIRM_INVOICE': confirm_handler,
-    'ECHO': echo_handler,  # For sample/test messages
+    'ECHO': echo_handler,
     'GET_INVOICES': get_invoices_handler,
+    'ADD_INVOICE': add_invoice_handler,
+    'GET_INVOICE_IMAGE': get_invoice_image_handler,
+    'GET_INVOICES_BY_IDS': get_invoice_by_ids_handler
 }
+
 
 
 # -----------------------------------------------------------------------------
@@ -212,75 +330,6 @@ def upload_file():
 
 
 
-
-def draw_bounding_boxes(image_path, results):
-        # Load the image using OpenCV
-        image = cv2.imread(image_path)
-
-        # Loop over each detected text result
-        for result in results:
-            bbox, text, _ = result  # Bounding box and text
-
-            # Extract coordinates from the bounding box
-            (tl_x, tl_y), (tr_x, tr_y), (br_x, br_y), (bl_x, bl_y) = bbox
-
-            # Draw a rectangle around the detected text
-            cv2.rectangle(image, (int(tl_x), int(tl_y)), (int(br_x), int(br_y)), (0, 255, 0), 2)
-
-            # Optionally, put the detected text above the bounding box
-            cv2.putText(image, text, (int(tl_x), int(tl_y) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
-
-        return image
-
-def display_image(image):
-        # Display the image in a window
-        cv2.imshow('Invoice with Bounding Boxes', image)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-
-
-
-def split_string_by_keywords(s, keywords):
-    input_string = s.translate(str.maketrans('','',string.punctuation))
-    # Create a regex pattern by joining keywords with | for OR condition
-    pattern = r'\b(' + '|'.join(re.escape(keyword) for keyword in keywords) + r')\b'
-
-
-    # Find the first occurrence of any keyword in the input string
-    first_keyword_pos = min((input_string.find(keyword) for keyword in keywords if keyword in input_string),default=-1)
-
-    if first_keyword_pos != -1:
-        # Cut the string to start from the first occurrence of a keyword
-        input_string = input_string[first_keyword_pos:]
-
-    # Split the string based on the pattern and keep the delimiters (keywords)
-    result = re.split(pattern, input_string)
-
-    # Filter out empty strings if any exist
-    result = [part for part in result if part]
-
-    # Initialize an empty dictionary to store the keyword-text pairs
-    result_dict = {}
-
-    # Iterate through the result and extract the text after each keyword
-    i = 0
-    while i < len(result):
-        keyword = result[i]
-        if i + 1 < len(result):
-            # The text after the keyword
-            text = result[i + 1]
-            # Add the keyword-text pair to the dictionary
-            result_dict[keyword] = text
-            i += 2  # Skip to the next keyword after the current text
-        else:
-            # If there's a keyword without any following text, just add it as key with empty string as value
-            result_dict[keyword] = ''
-            i += 1
-
-    return result_dict
-
-
 # -----------------------------------------------------------------------------
 # Optional: Sample Endpoint (Echoes back the JSON received)
 # -----------------------------------------------------------------------------
@@ -300,4 +349,4 @@ def sample():
 # -----------------------------------------------------------------------------
 if __name__ == '__main__':
     print("starting server...")
-    app.run(host="0.0.0.0", port=8081, debug=True)
+    app.run(host="0.0.0.0", port=8081, debug=False)

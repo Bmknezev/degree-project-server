@@ -34,11 +34,11 @@ def extract_text(res):
             invoice_num = s[8:]
             data["invoice_num"].append(invoice_num)
         if re.match(r"(^| )total",s,re.IGNORECASE):
-            total = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)",s)
+            total = re.findall(r"[\d,]+\.?\d{0,2}(?!.*\d+\.\d+)",s)
             if total:
                 data["total"].append(total[0])
         if "tax" in s.lower():
-            tax = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)",s)
+            tax = re.findall(r"[\d,]+\.?\d{0,2}(?!.*\d+\.\d+)",s)
             if tax:
                 data["tax"].append(tax[0])
         if "date" in s.lower():
@@ -47,7 +47,7 @@ def extract_text(res):
                 dd = d[0]
                 if "l" in dd:
                     dd.replace("l","/")
-                if "due" in s:
+                if "due" in s.lower():
                     data["due"].append(dd)
                 else:
                     data["date"].append(dd)
@@ -82,11 +82,11 @@ def splitText(res):
     lines = res.splitlines()
     for i, line in enumerate(lines):
         if "tax" in line.lower():
-            tax = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)", line)
+            tax = re.findall(r"[\d,]+\.?\d{0,2}(?!.*\d+\.\d+)", line)
             if tax:
                 data["tax"].append(tax[0])
         if re.match(r"(^| )total", line, re.IGNORECASE):
-            total = re.findall(r"\d+\.\d+(?!.*\d+\.\d+)", line, flags=re.IGNORECASE)
+            total = re.findall(r"[\d,]+\.?\d{0,2}(?!.*\d+\.\d+)", line, flags=re.IGNORECASE)
             if not total:
                 total = lines[i+1]
                 total = total[1:]
@@ -117,7 +117,7 @@ def splitText(res):
                 else:
                     data["date"].append(dd)
         if re.match(r"sub(t|l)o(t|l)a(t|l)",line,re.IGNORECASE):
-            subtotal = re.findall(r"\d+\.?\d{0,2}",line)
+            subtotal = re.findall(r"[\d,]+\.?\d{0,2}(?!.*\d+\.\d+)",line)
             if subtotal:
                 data["subTotal"].append(subtotal[0])
         if "@" in line:
@@ -218,10 +218,10 @@ def OCR(file):
             response = requests.get("http://localhost:11434")
             response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
             online = True
-            print("llama AI Online, Attempting To Extract",missing, "Missing Values")
+            print("Ollama AI Online, Attempting To Extract",missing, "Missing Values")
         except requests.exceptions.RequestException:
             online = False
-            print("llama AI Offline, Some Values May Be Missing")
+            print("Ollama AI Offline, Some Values May Be Missing")
 
         if online:
             for key in combined:

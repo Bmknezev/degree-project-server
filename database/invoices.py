@@ -32,6 +32,15 @@ def get_invoices(connection, page_number, page_size, sort_by, sort_order, restri
 def get_invoice_count(connection):
     return select_value_from_table(connection, "invoice", "COUNT(*)", fetch_one = True)[0]
 
+def get_invoices_by_ids(connection, invoice_ids):
+    if not invoice_ids:
+        return []
+
+    # Create a comma-separated string of IDs for the SQL IN clause
+    id_list = ','.join(str(int(id)) for id in invoice_ids)  # ensure IDs are integers
+
+    query = f"SELECT * FROM invoice WHERE internal_id IN ({id_list})"
+    return select_tuple_from_table(connection, "invoice", f" WHERE internal_id IN ({id_list})")
 
 
 if __name__ == '__main__':
