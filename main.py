@@ -13,6 +13,7 @@ import test
 from database import invoices
 from database.user_accounts import *
 from database.invoices import *
+from database.vendors import *
 import subprocess
 
 # Initialize the Flask app and EasyOCR reader
@@ -130,19 +131,20 @@ def get_invoices_handler(data):
 
 def add_invoice_handler(data):
     connection = connect_to_db("company_db")
+    vendor_id = get_vendor_id(connection, data['vendor'])
     add_invoice(
-        connection,
+        connection=connection,
         invoice_number=data['invoiceNum'],
-        company=data['vendor'],
+        vendor_id=vendor_id,
         total=data['total'],
-        gl_account=data['GL'],
-        email=data['email'],
         issue_date=data['issueDate'],
         due_date=data['due'],
-        date_paid="NULL",
         status="awaiting approval",
         subtotal=data.get('subTotal', "NULL"),
         tax=data.get('tax', "NULL"),
+        gl_account=data['GL'],
+        email=data['email'],
+        date_paid="NULL",
         description="NULL"
     )
 

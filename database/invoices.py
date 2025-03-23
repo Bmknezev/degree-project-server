@@ -1,18 +1,24 @@
 from database.db_interaction_functions import *
+from database.vendors import *
 
-def add_invoice(connection, invoice_number, company, total, gl_account, issue_date, due_date, status, subtotal = None, tax = None, email = None, date_paid = None, description = None):
-    columns = "invoice_number, company, total, gl_account, issue_date, due_date, status"
-        # remove any character from the total value that is not a digit or a period
+def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_date, status, subtotal = None, tax = None, gl_account = None, email = None, date_paid = None, description = None):
+    columns = "invoice_number, vendor, total, gl_account, issue_date, due_date, status"
+        # removes any character from the total value that is not a digit or a period
     total = ''.join(filter(lambda x: x.isdigit() or x == '.', str(total)))
-    values = f"'{invoice_number}', '{company}', {total}, '{gl_account}', '{issue_date}', '{due_date}', '{status}'"
+        # removes any character from the vendor_id value that is not a digit
+    vendor_id = ''.join(filter(lambda x: x.isdigit(), str(vendor_id)))
+        # if the gl_account is not provided, set it to the default gl account for the vendor
+    if gl_account == None:
+        gl_account = get_gl_account_from_vendor(connection, vendor_id)
+    values = f"'{invoice_number}', '{vendor_id}', {total}, '{gl_account}', '{issue_date}', '{due_date}', '{status}'"
     if subtotal != None:
         columns += ", subtotal"
-            # remove any character from the subtotal value that is not a digit or a period
+            # removes any character from the subtotal value that is not a digit or a period
         subtotal = ''.join(filter(lambda x: x.isdigit() or x == '.', str(subtotal)))
         values += f", {subtotal}"
     if tax != None:
         columns += ", tax"
-            # remove any character from the tax value that is not a digit or a period
+            # removes any character from the tax value that is not a digit or a period
         tax = ''.join(filter(lambda x: x.isdigit() or x == '.', str(tax)))
         values += f", {tax}"
     if email != None:
@@ -49,7 +55,7 @@ if __name__ == '__main__':
     table_name = "invoice"
     columns = ("internal_id INTEGER PRIMARY KEY, "
                "invoice_number VARCHAR(255) NOT NULL, "
-               "company VARCHAR(25) NOT NULL, "
+               "vendor INTEGER NOT NULL, "
                "subtotal DECIMAL(10, 2) CHECK (subtotal >= 0), "
                "tax DECIMAL(10, 2) CHECK (tax >= 0), "
                "total DECIMAL(10, 2) NOT NULL CHECK (total >= 0), "
@@ -59,7 +65,8 @@ if __name__ == '__main__':
                "due_date DATE NOT NULL, "
                "date_paid DATE, "
                "status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'paid')), "
-               "description VARCHAR(255)")
+               "description VARCHAR(255), "
+               "FOREIGN KEY (company) REFERENCES vendor(vendor_id)")
 
 
     drop_table(connection, table_name)
