@@ -1,8 +1,29 @@
 from database.db_interaction_functions import *
 
-def add_invoice(connection, invoice_number, company, total, gl_account, email, issue_date, due_date, date_paid, status, subtotal = "NULL", tax = "NULL", description = "NULL"):
-    columns = "invoice_number, company, subtotal, tax, total, gl_account, email, issue_date, due_date, date_paid, status, description"
-    values = f"'{invoice_number}', '{company}', {subtotal}, {tax}, {total}, '{gl_account}', '{email}','{issue_date}', '{due_date}', '{date_paid}', '{status}', '{description}'"
+def add_invoice(connection, invoice_number, company, total, gl_account, issue_date, due_date, status, subtotal = None, tax = None, email = None, date_paid = None, description = None):
+    columns = "invoice_number, company, total, gl_account, issue_date, due_date, status"
+        # remove any character from the total value that is not a digit or a period
+    total = ''.join(filter(lambda x: x.isdigit() or x == '.', str(total)))
+    values = f"'{invoice_number}', '{company}', {total}, '{gl_account}', '{issue_date}', '{due_date}', '{status}'"
+    if subtotal != None:
+        columns += ", subtotal"
+            # remove any character from the subtotal value that is not a digit or a period
+        subtotal = ''.join(filter(lambda x: x.isdigit() or x == '.', str(subtotal)))
+        values += f", {subtotal}"
+    if tax != None:
+        columns += ", tax"
+            # remove any character from the tax value that is not a digit or a period
+        tax = ''.join(filter(lambda x: x.isdigit() or x == '.', str(tax)))
+        values += f", {tax}"
+    if email != None:
+        columns += ", email"
+        values += f", '{email}'"
+    if date_paid != None:
+        columns += ", date_paid"
+        values += f", '{date_paid}'"
+    if description != None:
+        columns += ", description"
+        values += f", '{description}'"
     return insert_into_table(connection, "invoice", columns, values)
 
 def get_invoices(connection, page_number, page_size, sort_by, sort_order, restrictions = "1"):
