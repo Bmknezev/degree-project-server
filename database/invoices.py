@@ -66,7 +66,7 @@ if __name__ == '__main__':
                "date_paid DATE, "
                "status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'paid')), "
                "description VARCHAR(255), "
-               "FOREIGN KEY (company) REFERENCES vendor(vendor_id)")
+               "FOREIGN KEY (vendor) REFERENCES vendor(vendor_id)")
 
 
     drop_table(connection, table_name)
