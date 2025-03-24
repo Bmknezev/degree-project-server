@@ -124,7 +124,13 @@ def get_invoices_handler(data):
 
 def add_invoice_handler(data):
     connection = connect_to_db("company_db")
+    print("here1")
     vendor_id = get_vendor_id(connection, data['vendor'])
+    print("here3")
+    if not vendor_id:
+        print("sending request for new vendor")
+        return {"status": "fail", "message": "No vendor"}
+
     add_invoice(
         connection=connection,
         invoice_number=data['invoiceNum'],
@@ -229,6 +235,15 @@ def get_invoice_by_ids_handler(data):
     finally:
         connection.close()
 
+def add_vendor_handler(data):
+    connection = connect_to_db("company_db")
+    name = data.get("name")
+    gl = data.get("gl")
+    payment = data.get("payment")
+    address = data.get("address")
+    email = data.get("email")
+    add_vendor(connection,name,name,gl,payment,address,email)
+    return {"status":"ok"}
 
 def mark_invoices_paid_handler(data):
     invoice_ids = data.get("invoiceIds", [])
@@ -253,7 +268,8 @@ MESSAGE_HANDLERS = {
     'ADD_INVOICE': add_invoice_handler,
     'GET_INVOICE_IMAGE': get_invoice_image_handler,
     'GET_INVOICES_BY_IDS': get_invoice_by_ids_handler,
-    'MARK_INVOICES_PAID': mark_invoices_paid_handler
+    'MARK_INVOICES_PAID': mark_invoices_paid_handler,
+    'ADD_VENDOR': add_vendor_handler
 }
 
 

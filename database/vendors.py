@@ -6,7 +6,12 @@ def add_vendor(connection, vendor_name, internal_name, default_gl_account, payme
     return insert_into_table(connection, "vendor", columns, values)
 
 def get_vendor_id(connection, internal_name):
-    return select_value_from_table(connection, "vendor", "vendor_id", f"WHERE internal_name LIKE '{internal_name}'", fetch_one = True)[0]
+    try:
+        s = select_value_from_table(connection, "vendor", "vendor_id", f"WHERE internal_name LIKE '{internal_name}'", fetch_one = True)[0]
+        return s
+    except:
+        print("error")
+        return False
 
 def get_gl_account_from_vendor(connection, vendor_id):
     return select_value_from_table(connection, "vendor", "default_gl_account", f"WHERE vendor_id = {vendor_id}", fetch_one = True)[0]
