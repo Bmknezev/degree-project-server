@@ -82,45 +82,74 @@ def echo_handler(data):
 
 def get_invoices_handler(data):
     """
-    Get invoices from database
+    Get invoices from database, join with vendor info.
     """
-    page_number = data.get('pageNumber', '')
-    page_size = data.get('pageSize', '')
-    sort_by = data.get('sortBy', '')
-    sort_order = data.get('sortOrder', '')
+    page_number = data.get('pageNumber', 1)
+    page_size = data.get('pageSize', 10)
+    sort_by = data.get('sortBy', 'invoice_number')
+    sort_order = data.get('sortOrder', 'ASC')
     status_filter  = data.get('statusFilter', '')
 
     connection = connect_to_db("company_db")
 
-    # Convert status filter into SQL restriction
+    # Build restriction
     if status_filter == "Paid Invoices":
-        restrictions = "status LIKE 'paid'"
+        restrictions = "i.status LIKE 'paid'"
     elif status_filter == "Waiting for Approval":
-        restrictions = "status LIKE 'awaiting approval'"
+        restrictions = "i.status LIKE 'awaiting approval'"
     elif status_filter == "Waiting for Payment":
-        restrictions = "status LIKE 'awaiting payment'"
+        restrictions = "i.status LIKE 'awaiting payment'"
     elif status_filter == "Unpaid Invoices":
-        restrictions = "status IN ('awaiting approval', 'awaiting payment')"
+        restrictions = "i.status IN ('awaiting approval', 'awaiting payment')"
     else:
-        restrictions = "1"  # No filtering (default: show all invoices)
+        restrictions = "1"
+
+    # Join invoice and vendor table
+    query = f"""
+        SELECT 
+            i.internal_id, i.invoice_number, v.vendor_name, i.subtotal, i.tax, i.total,
+            i.gl_account, v.email, i.issue_date, i.due_date, i.date_edited, i.status, i.description
+        FROM invoice i
+        JOIN vendor v ON i.vendor = v.vendor_id
+        WHERE {restrictions}
+        ORDER BY {sort_by} {sort_order}
+        LIMIT ? OFFSET ?
+    """
+
+    cursor = connection.cursor()
+    cursor.execute(query, (page_size, page_size * (page_number - 1)))
+    rows = cursor.fetchall()
+
+    # Build JSON array manually
+    invoices_json = []
+    for row in rows:
+        invoice = {
+            "internal_id": row[0],
+            "invoice_number": row[1],
+            "company": row[2],               # vendor_name
+            "subtotal": row[3],
+            "tax": row[4],
+            "total": row[5],
+            "gl_account": row[6],
+            "email": row[7],                 # vendor email
+            "issue_date": row[8],
+            "due_date": row[9],
+            "date_paid": row[10],
+            "status": row[11],
+            "description": row[12],
+        }
+        invoices_json.append(invoice)
 
     total_invoices = get_invoice_count(connection)
-    total_pages = math.ceil(total_invoices / page_size)  # Calculate total pages
-
-
-    raw_invoices = get_invoices(connection, page_number, page_size, sort_by, sort_order, restrictions)
+    total_pages = math.ceil(total_invoices / page_size)
     connection.close()
 
-    # Define column mappings
-    column_names = [
-        "internal_id", "invoice_number", "company", "subtotal", "tax", "total",
-        "gl_account", "email", "issue_date", "due_date", "date_paid", "status", "description"
-    ]
+    if invoices_json:
+        print("First invoice:", invoices_json[0])
+    else:
+        print("No invoices found in result.")
 
-    # Convert raw database rows into JSON objects
-    formatted_invoices = [dict(zip(column_names, row)) for row in raw_invoices]
-
-    return {"invoices": formatted_invoices, "totalPages": total_pages}
+    return {"invoices": invoices_json, "totalPages": total_pages}
 
 def add_invoice_handler(data):
     connection = connect_to_db("company_db")
