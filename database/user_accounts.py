@@ -5,14 +5,19 @@ from database.roles import *
     #return connect_to_db(db_name, show_success)
 
     # this creates an account in the user table
-def create_account(connection, first_name, last_name, username, email, password, payment_info, role = "Unapproved_Employee"):
+def create_account(connection, first_name, last_name, username, email, password, payment_info, role = None):
         # check if the user table exists
     if table_exists(connection, "user"):
             # formats the values to be inserted into the user table
-        columns = "username, first_name, last_name, email, password, role, payment_info"
-        values = f"'{username}', '{first_name}', '{last_name}', '{email}', '{password}', '{role}', '{payment_info}'"
+        columns = "username, first_name, last_name, email, password, payment_info"
+        values = f"'{username}', '{first_name}', '{last_name}', '{email}', '{password}', '{payment_info}'"
             # inserts the values into the user table
-        return insert_into_table(connection, "user", columns, values)
+        user = insert_into_table(connection, "user", columns, values)
+            # if the role is provided, add the role to the user
+        if role:
+            user_id = get_user_id(connection, username)
+            add_role(connection, user_id, role)
+        return user
     print("Failed to create account: user table does not exist")
     return False
 
@@ -38,7 +43,7 @@ def access_account_information(connection, username, password):
         db_password = select_value_from_table(connection, "user", "password", f"WHERE username = '{username}'", False, False, True)[0]
             # if the password is correct return the user's First Name, Last Name, Role, and Payment Info
         if db_password == password:
-            desired_values = "first_name, last_name, email, role, payment_info"
+            desired_values = "first_name, last_name, email, payment_info"
             return select_value_from_table(connection, "user", desired_values, f"WHERE username = '{username}'", False, True, True)
         print(f"Failed to access account information: incorrect password")
         return False
@@ -62,13 +67,11 @@ def get_user_role(connection, username, password):
     # returns the role of the user
     return select_value_from_table(connection, "user", "role", f"WHERE username = '{username}'", False, True, True)[0]
 
-    # this obtains the specific permission of a user
-def get_user_permission(connection, username, password, permission):
-    role = get_user_role(connection, username, password)
-    return get_role_permission(connection, role, permission)
-
 def get_user_count(connection):
     return select_value_from_table(connection, "user", "COUNT(*)", fetch_one = True)
+
+def get_user_id(connection, username):
+    return select_value_from_table(connection, "user", "user_id", f"WHERE username = '{username}'", fetch_one = True)[0]
 
     # this deletes an account in the user table
 def delete_account(connection, username, password):
@@ -87,25 +90,21 @@ def delete_account(connection, username, password):
 if __name__ == '__main__':
     connection = connect_to_db("database")
     table_name = "user"
-    columns = ("username VARCHAR(255) NOT NULL, "
+    columns = ("user_id INTEGER PRIMARY KEY, "
+               "username VARCHAR(255) NOT NULL, "
                "first_name VARCHAR(255) NOT NULL, "
                "last_name VARCHAR(255) NOT NULL, "
                "email VARCHAR(255) NOT NULL, "
                "password VARCHAR(255) NOT NULL, "
-               "role VARCHAR(255) NOT NULL DEFAULT 'Unapproved_Employee', "
-               "payment_info VARCHAR(255) NOT NULL, "
-               "PRIMARY KEY (username, role)"
-               "FOREIGN KEY (role) REFERENCES role(role_name)")
+               "payment_info VARCHAR(255) NOT NULL")
 
     delete_account(connection, "admin", "admin")
     drop_table(connection, table_name)
 
     create_table(connection, table_name, columns)
-    create_account(connection, "admin", "admin", "admin", "admin", "admin", "admin", "Admin")
-    create_account(connection, "manager", "manager", "manager", "manager", "manager", "manager", "Manager")
-    create_account(connection, "employee", "employee", "employee", "employee", "employee", "employee", "Employee")
-    create_account(connection, "unapproved_employee", "unapproved_employee", "unapproved_employee", "unapproved_employee", "unapproved_employee", "unapproved_employee")
+    create_account(connection, "default", "account", "user", "defaultuser@email.com", "password", "credit card")
+    create_account(connection, "admin", "admin", "admin", "admin@email.com", "admin", "credit card")
+    create_account(connection, "John", "Smith", "johnsmith1973", "johnsmith1973@email.com", "password123", "credit card")
+    create_account(connection, "Jane", "Doe", "janedoe1995", "janedoe1995@email.com", "password456", "paypal")
 
     print(f"Account Information: {access_account_information(connection, "admin", "admin")}")
-    print(f"User Role: {get_user_role(connection, 'admin', 'admin')}")
-    print(f"User Permission: {get_user_permission(connection, 'manager', 'manager', 'payment_approve')}")

@@ -5,6 +5,9 @@ def add_vendor(connection, vendor_name, internal_name, default_gl_account, payme
     values = f"'{vendor_name}', '{internal_name}', '{default_gl_account}', '{payment_info}', '{address}', '{email}'"
     return insert_into_table(connection, "vendor", columns, values)
 
+def get_vendors(connection):
+    return select_all_from_table(connection, "vendor")
+
 def get_vendor_id(connection, internal_name):
     try:
         s = select_value_from_table(connection, "vendor", "vendor_id", f"WHERE internal_name LIKE '{internal_name}'", fetch_one = True)[0]
