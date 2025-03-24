@@ -5,7 +5,7 @@ from database.invoices import *
     # define table name
 table_name = "invoice"
     # define invoice columns
-
+"""
 columns = ("internal_id INTEGER PRIMARY KEY, "
                "invoice_number VARCHAR(255) NOT NULL, "
                "vendor INTEGER NOT NULL, "
@@ -21,6 +21,7 @@ columns = ("internal_id INTEGER PRIMARY KEY, "
                "description VARCHAR(255), "
                "FOREIGN KEY (vendor) REFERENCES vendor(vendor_id)")
 """
+"""
 columns = ("vendor_id INTEGER PRIMARY KEY, "
             "vendor_name VARCHAR(255) NOT NULL, "
             "internal_name VARCHAR(255) NOT NULL, "
@@ -32,7 +33,7 @@ columns = ("vendor_id INTEGER PRIMARY KEY, "
 
 
     # initialize the connection to the database
-connection = connect_to_db("company_db")
+#connection = connect_to_db("company_db")
 
     # drop a table
 #drop_table(connection, table_name)
@@ -41,7 +42,7 @@ connection = connect_to_db("company_db")
 #create_table(connection, table_name, columns)
 
     # add invoices
-""
+"""
 company_id = get_vendor_id(connection, "Company")
 organization_id = get_vendor_id(connection, "Organization")
 corporation_id = get_vendor_id(connection, "Corporation")
@@ -49,24 +50,34 @@ enterprise_id = get_vendor_id(connection, "Enterprise")
 megacorp_id = get_vendor_id(connection, "Megacorp")
 establishment_id = get_vendor_id(connection, "Establishment")
 
-add_invoice(connection, "1", company_id, 100.00, "2021-01-01", "2021-02-01", 110.00, 10.00, "awaiting payment", "email@company.com")
-add_invoice(connection, "2", company_id, 200.00, "gl_account", "email@company.com", "2021-02-01", "2021-03-01", "2021-02-15", "awaiting approval", 220.00, 20.00, "description")
-add_invoice(connection, "3", organization_id, 349.56, "gl_account", "email@organization.ca", "2021-03-01", "2021-04-01", "2021-03-15", "paid", 384.52, 34.96, "description")
-add_invoice(connection, "4", corporation_id, 150.00, "gl_account", "email@corporation.org", "2021-04-01", "2021-05-01", "2021-04-15", "awaiting approval", 165.00, 15.00, "description")
-add_invoice(connection, "5", organization_id, 249.99, "gl_account", "email.organization.ca", "2021-05-01", "2021-06-01", "2021-05-15", "awaiting payment", 274.98, 24.99, "description")
-add_invoice(connection, "6", enterprise_id, 3000.00, "gl_account", "email@enterprise.com", "2021-06-01", "2021-07-01", "2021-06-15", "paid", 3300.00, 300.00, "description")
-add_invoice(connection, "7", enterprise_id, 500.00, "gl_account", "email@enterprise.com", "2021-07-01", "2021-08-01", "2021-07-15", "awaiting approval", 550.00, 50.00, "description")
-add_invoice(connection, "8", megacorp_id, 1000.00, "gl_account", "email@megacorp.ca", "2021-08-01", "2021-09-01", "2021-08-15", "awaiting payment", 1100.00, 100.00, "description")
-add_invoice(connection, "9", megacorp_id, 2000.00, "gl_account", "email@megacorp.ca", "2021-09-01", "2021-10-01", "2021-09-15", "paid", 2200.00, 200.00, "description")
-add_invoice(connection, "10", establishment_id, 3000.00, "gl_account", "email@establishment.net", "2021-10-01", "2021-11-01", "2021-10-15", "awaiting approval", 3300.00, 300.00, "description")
-""
+vendor_ids = (company_id, company_id, organization_id, corporation_id, organization_id, enterprise_id, enterprise_id, megacorp_id, megacorp_id, establishment_id)
+totals = (100.00, 200.00, 349.56, 150.00, 249.99, 3000.00, 500.00, 1000.00, 2000.00, 3000.00)
+issue_dates = ("2021-01-01", "2021-02-01", "2021-03-01", "2021-04-01", "2021-05-01", "2021-06-01", "2021-07-01", "2021-08-01", "2021-09-01", "2021-10-01")
+due_dates = ("2021-01-31", "2021-02-28", "2021-03-31", "2021-04-30", "2021-05-31", "2021-06-30", "2021-07-31", "2021-08-31", "2021-09-30", "2021-10-31")
+statuses = ("awaiting payment", "awaiting approval", "paid", "awaiting approval", "awaiting payment", "paid", "awaiting approval", "awaiting payment", "paid", "awaiting approval")
+subtotals = (110.00, 220.00, None, 165.00, 274.98, 3300.00, None, 1100.00, 2200.00, 3300.00)
+taxes = (10.00, None, 34.96, 15.00, 24.99, None, 50.00, 100.00, None, 300.00)
+emails = (None, None, "email@organization.ca", "email@corporation.org", "email.organization.ca", "email@enterprise.com", None, "email@megacorp.ca", "email@megacorp.ca", "email@establishment.net")
+
+for i in range(0, 10):
+    add_invoice(connection = connection,
+                invoice_number = i + 1,
+                vendor_id = vendor_ids[i],
+                total = totals[i],
+                issue_date = issue_dates[i],
+                due_date = due_dates[i],
+                status = statuses[i],
+                subtotal = subtotals[i],
+                tax = taxes[i],
+                email = emails[i])
+"""
     # add vendors
 """
-add_vendor(connection, "Company", "Company", "gl_account1", "payment_info1", "address1", "email1")
-add_vendor(connection, "Organization", "Organization", "gl_account1", "payment_info1", "address1", "email1")
-add_vendor(connection, "Corporation", "Corporation", "gl_account1", "payment_info1", "address1", "email1")
-add_vendor(connection, "Enterprise", "Enterprise", "gl_account1", "payment_info1", "address1", "email1")
-add_vendor(connection, "Megacorp", "Megacorp", "gl_account1", "payment_info1", "address1", "email1")
-add_vendor(connection, "Establishment", "Establishment", "gl_account1", "payment_info1", "address1", "email1")
+add_vendor(connection, "Company", "Company", "electrical", "payment_info1", "address1", "email1")
+add_vendor(connection, "Organization", "Organization", "maintenance", "payment_info1", "address1", "email1")
+add_vendor(connection, "Corporation", "Corporation", "general expenses", "payment_info1", "address1", "email1")
+add_vendor(connection, "Enterprise", "Enterprise", "accounting", "payment_info1", "address1", "email1")
+add_vendor(connection, "Megacorp", "Megacorp", "business", "payment_info1", "address1", "email1")
+add_vendor(connection, "Establishment", "Establishment", "engineering", "payment_info1", "address1", "email1")
 """
 
