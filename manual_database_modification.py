@@ -3,10 +3,11 @@ from database.vendors import *
 from database.invoices import *
 
     # define table name
-table_name = "role"
+table_name = "invoice"
 
     # define user columns
 """
+table_name = "user"
 columns = ("user_id INTEGER PRIMARY KEY, "
                "username VARCHAR(255) NOT NULL, "
                "first_name VARCHAR(255) NOT NULL, "
@@ -18,6 +19,7 @@ columns = ("user_id INTEGER PRIMARY KEY, "
 
     # define role columns
 """
+table_name = "role"
 columns = ("id INTEGER PRIMARY KEY, "
            "user_id INTEGER NOT NULL, "
            "role VARCHAR(255) NOT NULL CHECK (role IN ('approval_manager', 'financial_manager', 'system_admin')), "
@@ -26,6 +28,7 @@ columns = ("id INTEGER PRIMARY KEY, "
 
     # define invoice columns
 """
+table_name = "invoice"
 columns = ("internal_id INTEGER PRIMARY KEY, "
                "invoice_number VARCHAR(255) NOT NULL, "
                "vendor INTEGER NOT NULL, "
@@ -36,7 +39,7 @@ columns = ("internal_id INTEGER PRIMARY KEY, "
                "email VARCHAR(255), "
                "issue_date DATE NOT NULL, "
                "due_date DATE NOT NULL, "
-               "date_paid DATE, "
+               "date_edited DATE, "
                "status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'paid')), "
                "description VARCHAR(255), "
                "FOREIGN KEY (vendor) REFERENCES vendor(vendor_id)")
@@ -44,6 +47,7 @@ columns = ("internal_id INTEGER PRIMARY KEY, "
 
     # define vendor columns
 """
+table_name = "vendor"
 columns = ("vendor_id INTEGER PRIMARY KEY, "
             "vendor_name VARCHAR(255) NOT NULL, "
             "internal_name VARCHAR(255) NOT NULL, "
@@ -58,10 +62,10 @@ columns = ("vendor_id INTEGER PRIMARY KEY, "
 connection = connect_to_db("company_db")
 
     # drop a table
-drop_table(connection, table_name)
+#drop_table(connection, table_name)
 
     # create a table
-create_table(connection, table_name, columns)
+#create_table(connection, table_name, columns)
 
     # add users
 """
