@@ -237,6 +237,19 @@ def get_invoice_by_ids_handler(data):
         connection.close()
 
 
+def mark_invoices_paid_handler(data):
+    invoice_ids = data.get("invoiceIds", [])
+    connection = connect_to_db("company_db")
+    cursor = connection.cursor()
+
+    for invoice_id in invoice_ids:
+        cursor.execute("UPDATE invoice SET status = 'paid', date_paid = CURRENT_DATE WHERE internal_id = ?",(invoice_id,))
+
+    connection.commit()
+    connection.close()
+    return {"status": "success", "message": f"{len(invoice_ids)} invoice(s) marked as paid."}
+
+
 # Add handler mapping
 MESSAGE_HANDLERS = {
     'LOGIN': login_handler,
@@ -246,7 +259,8 @@ MESSAGE_HANDLERS = {
     'GET_INVOICES': get_invoices_handler,
     'ADD_INVOICE': add_invoice_handler,
     'GET_INVOICE_IMAGE': get_invoice_image_handler,
-    'GET_INVOICES_BY_IDS': get_invoice_by_ids_handler
+    'GET_INVOICES_BY_IDS': get_invoice_by_ids_handler,
+    'MARK_INVOICES_PAID': mark_invoices_paid_handler
 }
 
 
