@@ -18,7 +18,7 @@ def get_all_roles(connection):
 
 def user_role_check(connection, user_id, role):
     if role != "approval_manager" and role != "financial_manager" and role != "system_admin":
-        return False
+        return "Not a valid role"
     return select_value_from_table(connection, "role", "COUNT(*)", f"WHERE user_id = {user_id} AND role = '{role}'", fetch_one = True, show_results = False)[0] > 0
 
 def get_user_roles(connection, user_id):
