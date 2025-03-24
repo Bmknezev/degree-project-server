@@ -243,6 +243,24 @@ def mark_invoices_paid_handler(data):
     return {"status": "success", "message": f"{len(invoice_ids)} invoice(s) marked as paid."}
 
 
+def create_account_handler(data):
+    connection = connect_to_db("company_db")
+    status = create_account(
+        connection = connection,
+        first_name = data['first_name'],
+        last_name = data['last_name'],
+        email = data['email'],
+        username = data['username'],
+        password = data['password'],
+        payment_info = "NULL"
+    )
+    connection.close()
+
+    if status:
+        return {"status": "success", "message": "User created successfully."}
+    return {"status": "failure", "message": "Failed to create account."}
+
+
 # Add handler mapping
 MESSAGE_HANDLERS = {
     'LOGIN': login_handler,
@@ -253,9 +271,9 @@ MESSAGE_HANDLERS = {
     'ADD_INVOICE': add_invoice_handler,
     'GET_INVOICE_IMAGE': get_invoice_image_handler,
     'GET_INVOICES_BY_IDS': get_invoice_by_ids_handler,
-    'MARK_INVOICES_PAID': mark_invoices_paid_handler
+    'MARK_INVOICES_PAID': mark_invoices_paid_handler,
+    'CREATE_ACCOUNT': create_account_handler
 }
-
 
 
 # -----------------------------------------------------------------------------
