@@ -1,20 +1,13 @@
 import math
 import os
 import shutil
-
 import easyocr
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from werkzeug.utils import secure_filename
-import re
-import string
-import cv2
-
 import test
-from database import invoices
 from database.user_accounts import *
 from database.invoices import *
 from database.vendors import *
-import subprocess
 
 # Initialize the Flask app and EasyOCR reader
 app = Flask(__name__)
