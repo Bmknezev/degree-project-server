@@ -3,7 +3,27 @@ from database.vendors import *
 from database.invoices import *
 
     # define table name
-table_name = "invoice"
+table_name = "role"
+
+    # define user columns
+"""
+columns = ("user_id INTEGER PRIMARY KEY, "
+               "username VARCHAR(255) NOT NULL, "
+               "first_name VARCHAR(255) NOT NULL, "
+               "last_name VARCHAR(255) NOT NULL, "
+               "email VARCHAR(255) NOT NULL, "
+               "password VARCHAR(255) NOT NULL, "
+               "payment_info VARCHAR(255) NOT NULL")
+"""
+
+    # define role columns
+"""
+columns = ("id INTEGER PRIMARY KEY, "
+           "user_id INTEGER NOT NULL, "
+           "role VARCHAR(255) NOT NULL CHECK (role IN ('approval_manager', 'financial_manager', 'system_admin')), "
+           "FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE")
+"""
+
     # define invoice columns
 """
 columns = ("internal_id INTEGER PRIMARY KEY, "
@@ -21,6 +41,8 @@ columns = ("internal_id INTEGER PRIMARY KEY, "
                "description VARCHAR(255), "
                "FOREIGN KEY (vendor) REFERENCES vendor(vendor_id)")
 """
+
+    # define vendor columns
 """
 columns = ("vendor_id INTEGER PRIMARY KEY, "
             "vendor_name VARCHAR(255) NOT NULL, "
@@ -33,13 +55,39 @@ columns = ("vendor_id INTEGER PRIMARY KEY, "
 
 
     # initialize the connection to the database
-#connection = connect_to_db("company_db")
+connection = connect_to_db("company_db")
 
     # drop a table
-#drop_table(connection, table_name)
+drop_table(connection, table_name)
 
     # create a table
-#create_table(connection, table_name, columns)
+create_table(connection, table_name, columns)
+
+    # add users
+"""
+create_account(connection = connection,
+               first_name = "default",
+               last_name = "account",
+               username = "user",
+               email = "defaultuser@email.com",
+               password = "password",
+               payment_info = "credit card")
+create_account(connection = connection,
+               first_name = "admin",
+               last_name = "admin",
+               username = "admin",
+               email = "admin@email.com",
+               password = "admin",
+               payment_info = "credit card")
+"""
+
+    # add roles
+"""
+admin_id = get_user_id(connection, "admin")
+add_user_role(connection = connection, user_id = admin_id, role = "approval_manager")
+add_user_role(connection = connection, user_id = admin_id, role = "financial_manager")
+add_user_role(connection = connection, user_id = admin_id, role = "system_admin")
+"""
 
     # add invoices
 """
@@ -71,6 +119,7 @@ for i in range(0, 10):
                 tax = taxes[i],
                 email = emails[i])
 """
+
     # add vendors
 """
 add_vendor(connection, "Company", "Company", "electrical", "payment_info1", "address1", "email1")
