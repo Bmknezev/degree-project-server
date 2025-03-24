@@ -9,7 +9,12 @@ def get_vendors(connection):
     return select_all_from_table(connection, "vendor")
 
 def get_vendor_id(connection, internal_name):
-    return select_value_from_table(connection, "vendor", "vendor_id", f"WHERE internal_name LIKE '{internal_name}'", fetch_one = True)[0]
+    try:
+        s = select_value_from_table(connection, "vendor", "vendor_id", f"WHERE internal_name LIKE '{internal_name}'", fetch_one = True)[0]
+        return s
+    except:
+        print("error")
+        return False
 
 def get_gl_account_from_vendor(connection, vendor_id):
     return select_value_from_table(connection, "vendor", "default_gl_account", f"WHERE vendor_id = {vendor_id}", fetch_one = True)[0]
