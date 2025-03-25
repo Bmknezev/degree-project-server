@@ -66,7 +66,6 @@ def login_handler(data):
     password = data.get('password', '')
 
     connection = connect_to_db("company_db")
-
     if login(connection, username, password):
         # Generate a session token (UUID)
         token = str(uuid.uuid4())
@@ -142,8 +141,6 @@ def get_invoices_handler(data):
     else:
         restrictions = "1"
 
-
-
     # Join invoice and vendor table
     query = f"""
         SELECT 
@@ -151,12 +148,13 @@ def get_invoices_handler(data):
             i.gl_account, v.email, i.issue_date, i.due_date, de.date_edited, s.status, i.description
         FROM invoice i
         JOIN vendor v ON i.vendor = v.vendor_id
-        LEFT JOIN status s ON i.internal_id = s.internal_id
         LEFT JOIN date_edited de ON i.internal_id = de.internal_id
+        LEFT JOIN status s ON i.internal_id = s.internal_id
         WHERE {restrictions}
         ORDER BY {sort_by} {sort_order}
         LIMIT ? OFFSET ?
     """
+
     cursor = connection.cursor()
     cursor.execute(query, (page_size, page_size * (page_number - 1)))
     rows = cursor.fetchall()
