@@ -110,9 +110,11 @@ def get_invoices_handler(data):
     query = f"""
         SELECT 
             i.internal_id, i.invoice_number, v.vendor_name, i.subtotal, i.tax, i.total,
-            i.gl_account, v.email, i.issue_date, i.due_date, i.date_edited, i.status, i.description
+            i.gl_account, v.email, i.issue_date, i.due_date, de.date_edited, s.status, i.description
         FROM invoice i
         JOIN vendor v ON i.vendor = v.vendor_id
+        LEFT JOIN status s ON i.internal_id = s.internal_id
+        LEFT JOIN date_edited de ON i.internal_id = de.internal_id
         WHERE {restrictions}
         ORDER BY {sort_by} {sort_order}
         LIMIT ? OFFSET ?
@@ -135,15 +137,11 @@ def get_invoices_handler(data):
             "email": row[7],                 # vendor email
             "issue_date": row[8],
             "due_date": row[9],
-            #"date_paid": row[10],
-            #"status": row[11],
+            "date_paid": row[10],
+            "status": row[11],
             "description": row[12],
         }
-        status = {"status": get_status()}
-        date_edited = get_date_edited()
         invoices_json.append(invoice)
-        invoices_json.append(status)
-        invoices_json.append(date_edited)
 
     # Calculate total *filtered* invoice count
     count_query = f"""
