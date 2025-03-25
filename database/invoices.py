@@ -32,6 +32,7 @@ def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_da
     if description != None:
         columns += ", description"
         values += f", '{description}'"
+    print(f"New invoices inserted {columns} = {values}")
     invoice = insert_into_table(connection, "invoice", columns, values)
     invoice_id = get_invoice_id(connection, invoice_number, vendor_id)
     upload = new_upload(connection, invoice_id, uploader_id)

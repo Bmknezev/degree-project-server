@@ -86,6 +86,20 @@ def delete_account(connection, username, password):
     print("Failed to delete account: user table does not exist")
     return False
 
+    # this deletes an account in the user table from admin account
+def admin_delete_account(connection, username):
+        # check if the user table exists
+    if table_exists(connection, "user"):
+        return delete_from_table(connection, "user", f"username = '{username}'")
+    print("Failed to delete account: user table does not exist")
+    return False
+
+
+def get_all_users(connection):
+    if table_exists(connection, "user"):
+        return select_value_from_table(connection, "user", f"first_name, last_name, username, email")
+
+
 # main function
 if __name__ == '__main__':
     connection = connect_to_db("database")
