@@ -19,6 +19,18 @@ def get_vendor_id(connection, internal_name):
 def get_gl_account_from_vendor(connection, vendor_id):
     return select_value_from_table(connection, "vendor", "default_gl_account", f"WHERE vendor_id = {vendor_id}", fetch_one = True, show_results = False)[0]
 
+def create_vendor_table(connection):
+    if table_exists(connection, "vendor"):
+        return False
+    columns = ("vendor_id INTEGER PRIMARY KEY, "
+               "vendor_name VARCHAR(255) NOT NULL, "
+               "internal_name VARCHAR(255) NOT NULL, "
+               "default_gl_account VARCHAR(255) NOT NULL, "
+               "payment_info VARCHAR(255) NOT NULL, " 
+               "address VARCHAR(255) NOT NULL, "
+               "email VARCHAR(255) NOT NULL")
+    return create_table(connection, "vendor", columns)
+
 if __name__ == '__main__':
     connection = connect_to_db("database")
     table_name = 'vendor'

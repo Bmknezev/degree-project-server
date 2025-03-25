@@ -102,6 +102,22 @@ def get_payment_method(connection, internal_id):
 def get_payment_number(connection, internal_id):
     return select_value_from_table(connection, "payment_history", "payment_number", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
 
+def create_payment_history_table(connection):
+    if table_exists(connection, "payment_history"):
+        return False
+    columns = ("payment_id INTEGER PRIMARY KEY, "
+               "internal_id INTEGER NOT NULL, "
+               "payment_date DATE NOT NULL DEFAULT CURRENT_DATE, "
+               "payment_time TIME NOT NULL DEFAULT CURRENT_TIME, "
+               "paid_by INTEGER NOT NULL, "
+               "payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('cheque', 'paypal')), "
+               "amount DECIMAL(10, 2) NOT NULL CHECK (amount >= 0), "
+               "payment_number VARCHAR(255) NOT NULL, "
+               "FOREIGN KEY (internal_id) REFERENCES invoice(internal_id), "
+               "FOREIGN KEY (paid_by) REFERENCES user(user_id)")
+    return create_table(connection, "payment_history", columns)
+
+
 if __name__ == "__main__":
     connection = connect_to_db("database")
     table_name = "payment_history"

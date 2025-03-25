@@ -1,71 +1,50 @@
+from database.approval_history import create_approval_history_table
+from database.payment_history import create_payment_history_table
 from database.user_accounts import *
 from database.vendors import *
 from database.invoices import *
+from database.views import *
 
-    # define table name
-table_name = "invoice"
-
-    # define user columns
-"""
-table_name = "user"
-columns = ("user_id INTEGER PRIMARY KEY, "
-               "username VARCHAR(255) NOT NULL UNIQUE, "
-               "first_name VARCHAR(255) NOT NULL, "
-               "last_name VARCHAR(255) NOT NULL, "
-               "email VARCHAR(255) NOT NULL, "
-               "password VARCHAR(255) NOT NULL, "
-               "payment_info VARCHAR(255) NOT NULL")
-"""
-
-    # define role columns
-"""
-table_name = "role"
-columns = ("id INTEGER PRIMARY KEY, "
-           "user_id INTEGER NOT NULL, "
-           "role VARCHAR(255) NOT NULL CHECK (role IN ('approval_manager', 'financial_manager', 'system_admin')), "
-           "FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE")
-"""
-
-    # define invoice columns
-"""
-table_name = "invoice"
-columns = ("internal_id INTEGER PRIMARY KEY, "
-               "invoice_number VARCHAR(255) NOT NULL, "
-               "vendor INTEGER NOT NULL, "
-               "subtotal DECIMAL(10, 2) CHECK (subtotal >= 0), "
-               "tax DECIMAL(10, 2) CHECK (tax >= 0), "
-               "total DECIMAL(10, 2) NOT NULL CHECK (total >= 0), "
-               "gl_account VARCHAR(255) NOT NULL, "
-               "email VARCHAR(255), "
-               "issue_date DATE NOT NULL, "
-               "due_date DATE NOT NULL, "
-               "date_edited DATE, "
-               "status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'paid')), "
-               "description VARCHAR(255), "
-               "FOREIGN KEY (vendor) REFERENCES vendor(vendor_id)")
-"""
-
-    # define vendor columns
-"""
-table_name = "vendor"
-columns = ("vendor_id INTEGER PRIMARY KEY, "
-            "vendor_name VARCHAR(255) NOT NULL, "
-            "internal_name VARCHAR(255) NOT NULL, "
-            "default_gl_account VARCHAR(255) NOT NULL, "
-            "payment_info VARCHAR(255) NOT NULL, " 
-            "address VARCHAR(255) NOT NULL, "
-            "email VARCHAR(255) NOT NULL")
-"""
-
-
-    # initialize the connection to the database
+# initialize the connection to the database
 connection = connect_to_db("company_db")
 
-    # drop a table
-#drop_table(connection, table_name)
+    # create the user table
+#drop_table(connection, "user")
+#create_user_table(connection)
 
-    # create a table
-#create_table(connection, table_name, columns)
+    # create the role table
+#drop_table(connection, "role")
+#create_role_table(connection)
+
+    # create the invoice table
+#drop_table(connection, "invoice")
+#create_invoice_table(connection)
+
+    # create the vendor table
+#drop_table(connection, "vendor")
+#create_vendor_table(connection)
+
+    # create the upload history table
+#drop_table(connection, "upload_history")
+#create_upload_history_table(connection)
+
+    # create the approval history table
+#drop_table(connection, "approval_history")
+#create_approval_history_table(connection)
+
+    # create the payment history table
+#drop_table(connection, "payment_history")
+#create_payment_history_table(connection)
+
+    # create the status view
+#drop_status(connection)
+#create_status(connection)
+
+    # create the date edited view
+#drop_date_edited(connection)
+#create_date_edited(connection)
+
+
 
     # add users
 """
@@ -94,7 +73,7 @@ add_user_role(connection = connection, user_id = admin_id, role = "system_admin"
 """
 
     # add invoices
-"""
+""
 company_id = get_vendor_id(connection, "Company")
 organization_id = get_vendor_id(connection, "Organization")
 corporation_id = get_vendor_id(connection, "Corporation")
@@ -103,6 +82,7 @@ megacorp_id = get_vendor_id(connection, "Megacorp")
 establishment_id = get_vendor_id(connection, "Establishment")
 
 vendor_ids = (company_id, company_id, organization_id, corporation_id, organization_id, enterprise_id, enterprise_id, megacorp_id, megacorp_id, establishment_id)
+admin_id = get_user_id(connection, "admin")
 totals = (100.00, 200.00, 349.56, 150.00, 249.99, 3000.00, 500.00, 1000.00, 2000.00, 3000.00)
 issue_dates = ("2021-01-01", "2021-02-01", "2021-03-01", "2021-04-01", "2021-05-01", "2021-06-01", "2021-07-01", "2021-08-01", "2021-09-01", "2021-10-01")
 due_dates = ("2021-01-31", "2021-02-28", "2021-03-31", "2021-04-30", "2021-05-31", "2021-06-30", "2021-07-31", "2021-08-31", "2021-09-30", "2021-10-31")
@@ -121,8 +101,9 @@ for i in range(0, 10):
                 status = statuses[i],
                 subtotal = subtotals[i],
                 tax = taxes[i],
-                email = emails[i])
-"""
+                email = emails[i],
+                uploader_id = admin_id)
+""
 
     # add vendors
 """

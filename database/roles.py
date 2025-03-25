@@ -27,6 +27,14 @@ def get_user_roles(connection, user_id):
 def get_role_count(connection):
     return select_value_from_table(connection, "role", "COUNT(*)", fetch_one = True)[0]
 
+def create_role_table(connection):
+    if table_exists(connection, "role"):
+        return False
+    columns = ("id INTEGER PRIMARY KEY, "
+               "user_id INTEGER NOT NULL, "
+               "role VARCHAR(255) NOT NULL CHECK (role IN ('approval_manager', 'financial_manager', 'system_admin')), "
+               "FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE CASCADE")
+    return create_table(connection, "role", columns)
 
 # main function
 if __name__ == '__main__':

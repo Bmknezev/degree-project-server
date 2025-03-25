@@ -142,6 +142,8 @@ def get_invoices_handler(data):
     else:
         restrictions = "1"
 
+
+
     # Join invoice and vendor table
     query = f"""
         SELECT 
@@ -153,7 +155,6 @@ def get_invoices_handler(data):
         ORDER BY {sort_by} {sort_order}
         LIMIT ? OFFSET ?
     """
-
     cursor = connection.cursor()
     cursor.execute(query, (page_size, page_size * (page_number - 1)))
     rows = cursor.fetchall()
@@ -172,11 +173,15 @@ def get_invoices_handler(data):
             "email": row[7],                 # vendor email
             "issue_date": row[8],
             "due_date": row[9],
-            "date_paid": row[10],
-            "status": row[11],
+            #"date_paid": row[10],
+            #"status": row[11],
             "description": row[12],
         }
+        status = {"status": get_status()}
+        date_edited = get_date_edited()
         invoices_json.append(invoice)
+        invoices_json.append(status)
+        invoices_json.append(date_edited)
 
     # Calculate total *filtered* invoice count
     count_query = f"""
