@@ -319,6 +319,10 @@ def get_all_users_handler(data):
         users_json.append(users)
     return {"users": users_json}
 
+def admin_delete_account_handler(data):
+    connection = connect_to_db("company_db")
+    return admin_delete_account(connection, data.get("username"))
+
 
 def update_vendor_handler(data):
     connection = connect_to_db("company_db")
@@ -384,8 +388,8 @@ MESSAGE_HANDLERS = {
     'CREATE_ACCOUNT': create_account_handler,
     'UPDATE_VENDOR': update_vendor_handler,
     'GET_ALL_VENDORS': get_all_vendors_handler,
-    'CREATE_ACCOUNT': create_account_handler,
     'GET_ALL_USERS': get_all_users_handler,
+    'ADMIN_DELETE_ACCOUNT': admin_delete_account_handler
 }
 
 
