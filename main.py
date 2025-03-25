@@ -302,6 +302,21 @@ def create_account_handler(data):
         return {"status": "success", "message": "User created successfully."}
     return {"status": "failure", "message": "Failed to create account."}
 
+def get_all_users_handler(data):
+    connection = connect_to_db("company_db")
+    result = get_all_users(connection)
+    # Build JSON array manually
+    users_json = []
+    for row in result:
+        users = {
+            "first_name": row[0],
+            "last_name": row[1],
+            "username": row[2],  # vendor_name
+            "email": row[3]
+        }
+        users_json.append(users)
+    return {"users": users_json}
+
 
 # Add handler mapping
 MESSAGE_HANDLERS = {
@@ -316,6 +331,8 @@ MESSAGE_HANDLERS = {
     'MARK_INVOICES_PAID': mark_invoices_paid_handler,
     'ADD_VENDOR': add_vendor_handler,
     'CREATE_ACCOUNT': create_account_handler
+    'CREATE_ACCOUNT': create_account_handler,
+    'GET_ALL_USERS': get_all_users_handler,
 }
 
 
