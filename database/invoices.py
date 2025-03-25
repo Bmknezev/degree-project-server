@@ -1,7 +1,7 @@
 from database.db_interaction_functions import *
 from database.vendors import *
 
-def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_date, status, subtotal = None, tax = None, gl_account = None, email = None, date_paid = None, description = None):
+def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_date, status, subtotal = None, tax = None, gl_account = None, email = None, date_edited = None, description = None):
     columns = "invoice_number, vendor, total, gl_account, issue_date, due_date, status"
         # removes any character from the total value that is not a digit or a period
     total = ''.join(filter(lambda x: x.isdigit() or x == '.', str(total)))
@@ -24,9 +24,9 @@ def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_da
     if email != None:
         columns += ", email"
         values += f", '{email}'"
-    if date_paid != None:
-        columns += ", date_paid"
-        values += f", '{date_paid}'"
+    if date_edited != None:
+        columns += ", date_edited"
+        values += f", '{date_edited}'"
     if description != None:
         columns += ", description"
         values += f", '{description}'"

@@ -169,7 +169,7 @@ def add_invoice_handler(data):
         tax=data.get('tax', "NULL"),
         gl_account=data['GL'],
         email=data['email'],
-        date_paid="NULL",
+        date_edited="NULL",
         description="NULL"
     )
 
@@ -269,9 +269,7 @@ def add_vendor_handler(data):
     address = data.get("address")
     email = data.get("email")
     add_vendor(connection,name,name,gl,payment,address,email)
-    cursor = connection.cursor()
-    cursor.execute("SELECT last_insert_rowid()")
-    vendor_id = cursor.fetchone()[0]
+    vendor_id = get_vendor_id(connection, name)
     connection.close()
 
     return {"status": "ok", "vendor_id": vendor_id}
@@ -337,8 +335,7 @@ def update_vendor_handler(data):
         WHERE vendor_name = ?
     """, (gl, payment, address, email, name))
 
-    cursor.execute("SELECT last_insert_rowid()")
-    vendor_id = cursor.fetchone()[0]
+    vendor_id = get_vendor_id(connection, name)
 
     connection.commit()
     connection.close()
