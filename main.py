@@ -140,7 +140,15 @@ def get_invoices_handler(data):
         }
         invoices_json.append(invoice)
 
-    total_invoices = get_invoice_count(connection)
+    # Calculate total *filtered* invoice count
+    count_query = f"""
+        SELECT COUNT(*)
+        FROM invoice i
+        JOIN vendor v ON i.vendor = v.vendor_id
+        WHERE {restrictions}
+    """
+    cursor.execute(count_query)
+    total_invoices = cursor.fetchone()[0]
     total_pages = math.ceil(total_invoices / page_size)
     connection.close()
 
@@ -372,6 +380,42 @@ def get_all_vendors_handler(data):
         connection.close()
 
 
+def approve_invoices_handler(data):
+
+    invoice_ids = data.get("invoiceIds", [])
+
+    if not isinstance(invoice_ids, list) or not invoice_ids:
+        return {
+            "status": "error",
+            "message": "Missing or invalid 'invoiceIds'. Expected a non-empty list."
+        }
+
+    connection = connect_to_db("company_db")
+    cursor = connection.cursor()
+
+    try:
+        for invoice_id in invoice_ids:
+            cursor.execute(
+                "UPDATE invoice SET status = 'awaiting payment' WHERE internal_id = ?",
+                (invoice_id,)
+            )
+
+        connection.commit()
+
+        return {
+            "status": "success",
+            "message": f"{len(invoice_ids)} invoice(s) approved successfully."
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to approve invoices: {str(e)}"
+        }
+
+    finally:
+        connection.close()
+
 
 # Add handler mapping
 MESSAGE_HANDLERS = {
@@ -389,7 +433,8 @@ MESSAGE_HANDLERS = {
     'UPDATE_VENDOR': update_vendor_handler,
     'GET_ALL_VENDORS': get_all_vendors_handler,
     'GET_ALL_USERS': get_all_users_handler,
-    'ADMIN_DELETE_ACCOUNT': admin_delete_account_handler
+    'ADMIN_DELETE_ACCOUNT': admin_delete_account_handler,
+    'APPROVE_INVOICES' : approve_invoices_handler
 }
 
 
