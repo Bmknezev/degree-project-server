@@ -105,7 +105,7 @@ if __name__ == '__main__':
     connection = connect_to_db("database")
     table_name = "user"
     columns = ("user_id INTEGER PRIMARY KEY, "
-               "username VARCHAR(255) NOT NULL, "
+               "username VARCHAR(255) NOT NULL UNIQUE, "
                "first_name VARCHAR(255) NOT NULL, "
                "last_name VARCHAR(255) NOT NULL, "
                "email VARCHAR(255) NOT NULL, "
