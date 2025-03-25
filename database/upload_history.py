@@ -1,6 +1,8 @@
 from database.db_interaction_functions import *
 
 def new_upload(connection, internal_id, uploaded_by, upload_date = None, upload_time = None):
+    internal_id = ''.join(filter(lambda x: x.isdigit(), str(internal_id)))
+    uploaded_by = ''.join(filter(lambda x: x.isdigit(), str(uploaded_by)))
     if check_for_upload(connection, internal_id):
         print("Failed to upload invoice: invoice already uploaded")
         return False
@@ -17,6 +19,7 @@ def new_upload(connection, internal_id, uploaded_by, upload_date = None, upload_
 
 def check_for_upload(connection, internal_id):
     try:
+        internal_id = ''.join(filter(lambda x: x.isdigit(), str(internal_id)))
         select_value_from_table(connection, "upload_history", "internal_id", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
         return True
     except:

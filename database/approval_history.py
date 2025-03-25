@@ -3,6 +3,8 @@ from database.roles import *
 from database.upload_history import *
 
 def approve_invoice(connection, internal_id, approved_by, approval_date = None, approval_time = None):
+    internal_id = ''.join(filter(lambda x: x.isdigit(), str(internal_id)))
+    approved_by = ''.join(filter(lambda x: x.isdigit(), str(approved_by)))
     if user_role_check(connection, approved_by, "approval_manager"):
         if check_for_approval(connection, internal_id):
             print("Failed to approve invoice: invoice already approved")
@@ -26,10 +28,15 @@ def approve_invoice(connection, internal_id, approved_by, approval_date = None, 
 
 def approve_invoices_by_vendor(connection, vendor_id, approved_by, approval_date = None, approval_time = None):
     if user_role_check(connection, approved_by, "approval_manager"):
-        internal_ids = select_tuple_from_table(connection, "invoice", f"WHERE vendor_id = {vendor_id}")
-        for internal_id in internal_ids:
-            approve_invoice(connection, internal_id, approved_by, approval_date, approval_time)
-        return True
+        try:
+            internal_ids = select_value_from_table(connection, "invoice", "internal_id", f"WHERE vendor = {vendor_id}", show_results = False)
+            print(f"-Start of batch approval for vendor {vendor_id}")
+            for internal_id in internal_ids:
+                approve_invoice(connection, internal_id, approved_by, approval_date, approval_time)
+            return True
+        except:
+            print("Failed to approve invoices: could not find invoices for vendor")
+            return False
     else:
         print("Failed to approve invoices: user is not an approval manager")
         return False
@@ -47,6 +54,7 @@ def approve_multiple_invoices(connection, internal_ids, approved_by, approval_da
 
 def check_for_approval(connection, internal_id):
     try:
+        internal_id = ''.join(filter(lambda x: x.isdigit(), str(internal_id)))
         select_value_from_table(connection, "approval_history", "internal_id", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
         return True
     except:

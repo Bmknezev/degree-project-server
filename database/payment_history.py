@@ -1,8 +1,11 @@
 from database.db_interaction_functions import *
 from database.roles import *
 from database.approval_history import *
+from database.vendors import *
 
 def pay_invoice(connection, internal_id, paid_by, payment_method, payment_number, payment_date = None, payment_time = None, amount = None):
+    internal_id = ''.join(filter(lambda x: x.isdigit(), str(internal_id)))
+    paid_by = ''.join(filter(lambda x: x.isdigit(), str(paid_by)))
     if user_role_check(connection, paid_by, "financial_manager"):
         if check_for_payment(connection, internal_id):
             print("Failed to pay invoice: invoice already paid")
@@ -10,6 +13,8 @@ def pay_invoice(connection, internal_id, paid_by, payment_method, payment_number
         if check_for_approval(connection, internal_id) == False:
             print("Failed to pay invoice: invoice not approved")
             return False
+        if amount == None:
+            amount = select_value_from_table(connection, "invoice", "total", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
         columns = "internal_id, paid_by, payment_method, amount, payment_number"
         values = f"{internal_id}, {paid_by}, '{payment_method}', {amount}, '{payment_number}'"
         if payment_date != None:
@@ -18,8 +23,6 @@ def pay_invoice(connection, internal_id, paid_by, payment_method, payment_number
         if payment_time != None:
             columns += ", payment_time"
             values += f", '{payment_time}'"
-        if amount == None:
-            amount = select_value_from_table(connection, "invoice", "amount", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
         return insert_into_table(connection, "payment_history", columns, values)
     else:
         print("Failed to pay invoice: user is not a financial manager")
@@ -28,10 +31,15 @@ def pay_invoice(connection, internal_id, paid_by, payment_method, payment_number
 
 def pay_invoices_by_vendor(connection, vendor_id, paid_by, payment_method, payment_number, payment_date = None, payment_time = None):
     if user_role_check(connection, paid_by, "financial_manager"):
-        internal_ids = select_tuple_from_table(connection, "invoice", f"WHERE vendor_id = {vendor_id}")
-        for internal_id in internal_ids:
-            pay_invoice(connection, internal_id, paid_by, payment_method, payment_number, payment_date, payment_time)
-        return True
+        try:
+            internal_ids = select_value_from_table(connection, "invoice", "internal_id", f"WHERE vendor = {vendor_id}", show_results = False)
+            print(f"-Start of batch payment for vendor {vendor_id}")
+            for internal_id in internal_ids:
+                pay_invoice(connection, internal_id, paid_by, payment_method, payment_number, payment_date, payment_time)
+            return True
+        except:
+            print("Failed to pay invoices: could not find invoices for vendor")
+            return False
     else:
         print("Failed to pay invoices: user is not a financial manager")
         return False
@@ -49,16 +57,23 @@ def pay_multiple_invoices(connection, internal_ids, paid_by, payment_method, pay
 
 def check_for_payment(connection, internal_id):
     try:
+        internal_id = ''.join(filter(lambda x: x.isdigit(), str(internal_id)))
         select_value_from_table(connection, "payment_history", "internal_id", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
         return True
     except:
         return False
 
 def get_payment_date(connection, internal_id):
-    return select_value_from_table(connection, "payment_history", "payment_date", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
+    try:
+        return select_value_from_table(connection, "payment_history", "payment_date", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
+    except:
+        return False
 
 def get_payment_time(connection, internal_id):
-    return select_value_from_table(connection, "payment_history", "payment_time", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
+    try:
+        return select_value_from_table(connection, "payment_history", "payment_time", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
+    except:
+        return False
 
 def get_payer_id(connection, internal_id):
     return select_value_from_table(connection, "payment_history", "paid_by", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
@@ -88,7 +103,7 @@ def get_payment_number(connection, internal_id):
     return select_value_from_table(connection, "payment_history", "payment_number", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
 
 if __name__ == "__main__":
-    connection = sqlite3.connect("database.db")
+    connection = connect_to_db("database")
     table_name = "payment_history"
     columns = ("payment_id INTEGER PRIMARY KEY, "
                "internal_id INTEGER NOT NULL, "
@@ -101,16 +116,17 @@ if __name__ == "__main__":
                "FOREIGN KEY (internal_id) REFERENCES invoice(internal_id), "
                "FOREIGN KEY (paid_by) REFERENCES user(user_id)")
 
-    #drop_table(connection, table_name)
+    drop_table(connection, table_name)
     create_table(connection, table_name, columns)
 
     #print(select_all_from_table(connection, table_name))
     user_id = get_user_id(connection, "user")
     admin_id = get_user_id(connection, "admin")
-    print(pay_invoice(connection, 1, user_id, "cheque", 100, "1234"))
-    print(pay_invoice(connection, 1, admin_id, "cheque", 100, "1234"))
-    print(pay_invoice(connection, 2, user_id, "cheque", 100, "1234"))
-    print(pay_invoice(connection, 2, admin_id, "cheque", 100, "1234"))
+    print(pay_invoice(connection, 1, user_id, "cheque", 100))
+    print(pay_invoice(connection, 1, admin_id, "cheque", 100))
+    print(pay_invoice(connection, 2, admin_id, "cheque", 100))
+    vendor1_id = get_vendor_id(connection, "internal1")
+    print(pay_invoices_by_vendor(connection, vendor1_id, admin_id, "cheque", 100))
 
     print(f"Checking for payment: {check_for_payment(connection, 1)}")
     print(f"getting the payment date: {get_payment_date(connection, 1)}")
@@ -124,4 +140,5 @@ if __name__ == "__main__":
     print(f"getting the payment amount: {get_payment_amount(connection, 1)}")
     print(f"getting the payment method: {get_payment_method(connection, 1)}")
     print(f"getting the payment number: {get_payment_number(connection, 1)}")
+
 
