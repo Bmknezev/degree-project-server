@@ -10,14 +10,14 @@ def get_vendors(connection):
 
 def get_vendor_id(connection, internal_name):
     try:
-        s = select_value_from_table(connection, "vendor", "vendor_id", f"WHERE internal_name LIKE '{internal_name}'", fetch_one = True)[0]
+        s = select_value_from_table(connection, "vendor", "vendor_id", f"WHERE internal_name LIKE '{internal_name}'", fetch_one = True, show_results = False)[0]
         return s
     except:
         print("error")
         return False
 
 def get_gl_account_from_vendor(connection, vendor_id):
-    return select_value_from_table(connection, "vendor", "default_gl_account", f"WHERE vendor_id = {vendor_id}", fetch_one = True)[0]
+    return select_value_from_table(connection, "vendor", "default_gl_account", f"WHERE vendor_id = {vendor_id}", fetch_one = True, show_results = False)[0]
 
 if __name__ == '__main__':
     connection = connect_to_db("database")

@@ -71,7 +71,7 @@ def get_user_count(connection):
     return select_value_from_table(connection, "user", "COUNT(*)", fetch_one = True)
 
 def get_user_id(connection, username):
-    return select_value_from_table(connection, "user", "user_id", f"WHERE username = '{username}'", fetch_one = True)[0]
+    return select_value_from_table(connection, "user", "user_id", f"WHERE username = '{username}'", fetch_one = True, show_results = False)[0]
 
     # this deletes an account in the user table
 def delete_account(connection, username, password):

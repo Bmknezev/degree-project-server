@@ -1,7 +1,9 @@
 from database.db_interaction_functions import *
 from database.vendors import *
+from database.upload_history import *
+from database.user_accounts import *
 
-def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_date, status, subtotal = None, tax = None, gl_account = None, email = None, date_paid = None, description = None):
+def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_date, status, uploader_id, subtotal = None, tax = None, gl_account = None, email = None, date_edited = None, description = None):
     columns = "invoice_number, vendor, total, gl_account, issue_date, due_date, status"
         # removes any character from the total value that is not a digit or a period
     total = ''.join(filter(lambda x: x.isdigit() or x == '.', str(total)))
@@ -24,13 +26,16 @@ def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_da
     if email != None:
         columns += ", email"
         values += f", '{email}'"
-    if date_paid != None:
-        columns += ", date_paid"
-        values += f", '{date_paid}'"
+    if date_edited != None:
+        columns += ", date_edited"
+        values += f", '{date_edited}'"
     if description != None:
         columns += ", description"
         values += f", '{description}'"
-    return insert_into_table(connection, "invoice", columns, values)
+    invoice = insert_into_table(connection, "invoice", columns, values)
+    invoice_id = get_invoice_id(connection, invoice_number, vendor_id)
+    upload = new_upload(connection, invoice_id, uploader_id)
+    return invoice
 
 def get_invoices(connection, page_number, page_size, sort_by, sort_order, restrictions = "1"):
     return select_tuple_from_table(connection, "invoice", f" WHERE {restrictions} ORDER BY {sort_by} {sort_order} LIMIT {page_size} OFFSET {page_size * (page_number - 1)}")
@@ -38,14 +43,16 @@ def get_invoices(connection, page_number, page_size, sort_by, sort_order, restri
 def get_invoice_count(connection):
     return select_value_from_table(connection, "invoice", "COUNT(*)", fetch_one = True)[0]
 
+def get_invoice_id(connection, invoice_number, vendor_id):
+    vendor_id = ''.join(filter(lambda x: x.isdigit() or x == '.', str(vendor_id)))
+    return select_value_from_table(connection, "invoice", "internal_id", f" WHERE invoice_number LIKE '{invoice_number}' AND vendor = {vendor_id}", fetch_one = True)[0]
+
 def get_invoices_by_ids(connection, invoice_ids):
     if not invoice_ids:
         return []
 
     # Create a comma-separated string of IDs for the SQL IN clause
     id_list = ','.join(str(int(id)) for id in invoice_ids)  # ensure IDs are integers
-
-    query = f"SELECT * FROM invoice WHERE internal_id IN ({id_list})"
     return select_tuple_from_table(connection, "invoice", f" WHERE internal_id IN ({id_list})")
 
 
@@ -63,7 +70,7 @@ if __name__ == '__main__':
                "email VARCHAR(255), "
                "issue_date DATE NOT NULL, "
                "due_date DATE NOT NULL, "
-               "date_paid DATE, "
+               "date_edited DATE NOT NULL DEFAULT CURRENT_DATE, "
                "status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'paid')), "
                "description VARCHAR(255), "
                "FOREIGN KEY (vendor) REFERENCES vendor(vendor_id)")
@@ -72,8 +79,28 @@ if __name__ == '__main__':
     drop_table(connection, table_name)
 
     create_table(connection, table_name, columns)
-    add_invoice(connection, "1", "company", 100.00, "gl_account", "example@company.com", "2021-01-01", "2021-02-01", "2021-01-15", "awaiting payment", 110.00, description = "description")
-    add_invoice(connection, "2", "company", 200.00, "gl_account", "example@company.com", "2021-02-01", "2021-03-01", "2021-02-15", "awaiting approval", 220.00, 20.00, "description")
+    vendor1_id = get_vendor_id(connection, "internal1")
+    admin_id = get_user_id(connection, "admin")
+    add_invoice(connection,
+                invoice_number = "12345",
+                vendor_id = vendor1_id,
+                total = 100,
+                issue_date = "2021-01-01",
+                due_date = "2021-01-31",
+                status = "awaiting approval",
+                uploader_id = admin_id,
+                subtotal = 90,
+                tax = 10)
+    add_invoice(connection,
+                invoice_number = "67890",
+                vendor_id = vendor1_id,
+                total = 200,
+                issue_date = "2021-02-01",
+                due_date = "2021-02-28",
+                status = "awaiting payment",
+                uploader_id = admin_id,
+                subtotal = 180,
+                tax = 20)
 
-    print(get_invoices(connection, 1, 5, "invoice_number", "ASC"))
-    print(get_invoices(connection, 1, 5, "invoice_number", "DESC", "company LIKE 'company'"))
+    #print(get_invoices(connection, 1, 5, "invoice_number", "ASC"))
+    #print(get_invoices(connection, 1, 5, "invoice_number", "DESC", "company LIKE 'company'"))
