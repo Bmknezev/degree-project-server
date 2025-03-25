@@ -55,6 +55,18 @@ def get_uploads_by_user(connection, uploaded_by):
 def get_uploads_by_date(connection, upload_date):
     return select_tuple_from_table(connection, "upload_history", f"WHERE upload_date = {upload_date}")
 
+def create_upload_history_table(connection):
+    if table_exists(connection, "upload_history"):
+        return False
+    columns = ("upload_id INTEGER PRIMARY KEY, "
+               "internal_id INTEGER NOT NULL, "
+               "upload_date DATE NOT NULL DEFAULT CURRENT_DATE, "
+               "upload_time TIME NOT NULL DEFAULT CURRENT_TIME, "
+               "uploaded_by INTEGER NOT NULL, "
+               "FOREIGN KEY (internal_id) REFERENCES invoice(internal_id), "
+               "FOREIGN KEY (uploaded_by) REFERENCES user(user_id)")
+    return create_table(connection, "upload_history", columns)
+
 if __name__ == "__main__":
     connection = connect_to_db("database")
     table_name = "upload_history"

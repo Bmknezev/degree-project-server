@@ -84,6 +84,18 @@ def get_approvals_by_user(connection, approved_by):
 def get_approvals_by_date(connection, approval_date):
     return select_tuple_from_table(connection, "approval_history", f"WHERE approval_date = {approval_date}")
 
+def create_approval_history_table(connection):
+    if table_exists(connection, "approval_history"):
+        return False
+    columns = ("approval_id INTEGER PRIMARY KEY, "
+               "internal_id INTEGER NOT NULL, "
+               "approval_date DATE NOT NULL DEFAULT CURRENT_DATE, "
+               "approval_time TIME NOT NULL DEFAULT CURRENT_TIME, "
+               "approved_by INTEGER NOT NULL, "
+               "FOREIGN KEY (internal_id) REFERENCES invoice(internal_id), "
+               "FOREIGN KEY (approved_by) REFERENCES user(user_id)")
+    return create_table(connection, "approval_history", columns)
+
 if __name__ == "__main__":
     connection = connect_to_db("database")
     table_name = "approval_history"

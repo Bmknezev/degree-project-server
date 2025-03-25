@@ -13,10 +13,6 @@ def create_account(connection, first_name, last_name, username, email, password,
         values = f"'{username}', '{first_name}', '{last_name}', '{email}', '{password}', '{payment_info}'"
             # inserts the values into the user table
         user = insert_into_table(connection, "user", columns, values)
-            # if the role is provided, add the role to the user
-        if role:
-            user_id = get_user_id(connection, username)
-            add_role(connection, user_id, role)
         return user
     print("Failed to create account: user table does not exist")
     return False
@@ -99,7 +95,17 @@ def get_all_users(connection):
     if table_exists(connection, "user"):
         return select_value_from_table(connection, "user", f"first_name, last_name, username, email")
 
-
+def create_user_table(connection):
+    if table_exists(connection, "user"):
+        return False
+    columns = ("user_id INTEGER PRIMARY KEY, "
+               "username VARCHAR(255) NOT NULL UNIQUE, "
+               "first_name VARCHAR(255) NOT NULL, "
+               "last_name VARCHAR(255) NOT NULL, "
+               "email VARCHAR(255) NOT NULL, "
+               "password VARCHAR(255) NOT NULL, "
+               "payment_info VARCHAR(255) NOT NULL")
+    return create_table(connection, "user", columns)
 # main function
 if __name__ == '__main__':
     connection = connect_to_db("database")
