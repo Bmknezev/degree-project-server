@@ -1,6 +1,8 @@
 import math
 import os
 import shutil
+import uuid
+
 import easyocr
 from flask import Flask, request
 from werkzeug.utils import secure_filename
@@ -32,6 +34,9 @@ except:
 #create_account(connection, "Test", "Account", "user", "user@email.com", "password", "role", "payment_info")
 
 
+# Store tokens in-memory
+active_sessions = {}  # token -> username
+
 
 # -----------------------------------------------------------------------------
 # Message Handlers
@@ -45,13 +50,30 @@ def login_handler(data):
     password = data.get('password', '')
 
     connection = connect_to_db("company_db")
+
     if login(connection, username, password):
+        # Generate a session token (UUID)
+        token = str(uuid.uuid4())
+        active_sessions[token] = username  # store session
         connection.close()
-        return {'status': 'success', 'message': 'Login successful'}
+        return {
+            "status": "success",
+            "message": "Login successful",
+            "token": token
+        }
     else:
         connection.close()
-        return {'status': 'failure', 'message': 'Invalid credentials'}
+        return {
+            "status": "failure",
+            "message": "Invalid credentials"
+        }
 
+def logout_handler(data):
+    token = data.get("token")
+    if token and token in active_sessions:
+        del active_sessions[token]
+        return {"status": "success", "message": "Logged out"}
+    return {"status": "failure", "message": "Invalid or missing token"}
 
 def invoice_handler(data):
     """
@@ -434,7 +456,8 @@ MESSAGE_HANDLERS = {
     'GET_ALL_VENDORS': get_all_vendors_handler,
     'GET_ALL_USERS': get_all_users_handler,
     'ADMIN_DELETE_ACCOUNT': admin_delete_account_handler,
-    'APPROVE_INVOICES' : approve_invoices_handler
+    'APPROVE_INVOICES' : approve_invoices_handler,
+    'LOGOUT': logout_handler
 }
 
 
@@ -443,16 +466,6 @@ MESSAGE_HANDLERS = {
 # -----------------------------------------------------------------------------
 @app.route('/api/message', methods=['POST'])
 def api_message():
-    """
-    Endpoint that accepts a JSON payload with a 'type' field and optional 'data'.
-    Dispatches the message to the appropriate handler.
-
-    Expected JSON format:
-      {
-        "type": "LOGIN",         // or SEND_INVOICE, CONFIRM_INVOICE, etc.
-        "data": { ... }          // data specific to the message type
-      }
-    """
     if not request.is_json:
         return jsonify({'error': 'Request must be JSON'}), 400
 
@@ -463,6 +476,11 @@ def api_message():
 
     msg_type = payload.get('type', '').upper()
     message_data = payload.get('data', {})
+
+    if msg_type != "LOGIN":
+        token = payload.get('token')
+        if token not in active_sessions:
+            return jsonify({'error': 'Unauthorized'}), 401
 
     if not msg_type:
         return jsonify({'error': 'Message type not specified'}), 400
