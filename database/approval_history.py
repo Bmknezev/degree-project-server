@@ -1,10 +1,14 @@
 from database.db_interaction_functions import *
 from database.roles import *
+from database.upload_history import *
 
 def approve_invoice(connection, internal_id, approved_by, approval_date = None, approval_time = None):
     if user_role_check(connection, approved_by, "approval_manager"):
         if check_for_approval(connection, internal_id):
             print("Failed to approve invoice: invoice already approved")
+            return False
+        if check_for_upload(connection, internal_id) == False:
+            print("Failed to approve invoice: invoice not uploaded")
             return False
         columns = "internal_id, approved_by"
         values = f"{internal_id}, '{approved_by}'"
@@ -17,6 +21,27 @@ def approve_invoice(connection, internal_id, approved_by, approval_date = None, 
         return insert_into_table(connection, "approval_history", columns, values)
     else:
         print("Failed to approve invoice: user is not an approval manager")
+        return False
+    return False
+
+def approve_invoices_by_vendor(connection, vendor_id, approved_by, approval_date = None, approval_time = None):
+    if user_role_check(connection, approved_by, "approval_manager"):
+        internal_ids = select_tuple_from_table(connection, "invoice", f"WHERE vendor_id = {vendor_id}")
+        for internal_id in internal_ids:
+            approve_invoice(connection, internal_id, approved_by, approval_date, approval_time)
+        return True
+    else:
+        print("Failed to approve invoices: user is not an approval manager")
+        return False
+    return False
+
+def approve_multiple_invoices(connection, internal_ids, approved_by, approval_date = None, approval_time = None):
+    if user_role_check(connection, approved_by, "approval_manager"):
+        for internal_id in internal_ids:
+            approve_invoice(connection, internal_id, approved_by, approval_date, approval_time)
+        return True
+    else:
+        print("Failed to approve invoices: user is not an approval manager")
         return False
     return False
 

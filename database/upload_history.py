@@ -20,7 +20,13 @@ def check_for_upload(connection, internal_id):
         select_value_from_table(connection, "upload_history", "internal_id", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
         return True
     except:
-        return False
+        try:
+            select_value_from_table(connection, "invoice", "internal_id", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
+            print("Error, invoice exists in database but no record of upload")
+            return False
+        except:
+            print("Error, invoice does not exist in database")
+            return False
 
 def get_upload_date(connection, internal_id):
     return select_value_from_table(connection, "upload_history", "upload_date", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]

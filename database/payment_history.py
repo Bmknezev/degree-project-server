@@ -1,10 +1,14 @@
 from database.db_interaction_functions import *
 from database.roles import *
+from database.approval_history import *
 
-def pay_invoice(connection, internal_id, paid_by, payment_method, amount, payment_number, payment_date = None, payment_time = None):
+def pay_invoice(connection, internal_id, paid_by, payment_method, payment_number, payment_date = None, payment_time = None, amount = None):
     if user_role_check(connection, paid_by, "financial_manager"):
         if check_for_payment(connection, internal_id):
             print("Failed to pay invoice: invoice already paid")
+            return False
+        if check_for_approval(connection, internal_id) == False:
+            print("Failed to pay invoice: invoice not approved")
             return False
         columns = "internal_id, paid_by, payment_method, amount, payment_number"
         values = f"{internal_id}, {paid_by}, '{payment_method}', {amount}, '{payment_number}'"
@@ -14,9 +18,32 @@ def pay_invoice(connection, internal_id, paid_by, payment_method, amount, paymen
         if payment_time != None:
             columns += ", payment_time"
             values += f", '{payment_time}'"
+        if amount == None:
+            amount = select_value_from_table(connection, "invoice", "amount", f"WHERE internal_id = {internal_id}", fetch_one = True, show_results = False)[0]
         return insert_into_table(connection, "payment_history", columns, values)
     else:
         print("Failed to pay invoice: user is not a financial manager")
+        return False
+    return False
+
+def pay_invoices_by_vendor(connection, vendor_id, paid_by, payment_method, payment_number, payment_date = None, payment_time = None):
+    if user_role_check(connection, paid_by, "financial_manager"):
+        internal_ids = select_tuple_from_table(connection, "invoice", f"WHERE vendor_id = {vendor_id}")
+        for internal_id in internal_ids:
+            pay_invoice(connection, internal_id, paid_by, payment_method, payment_number, payment_date, payment_time)
+        return True
+    else:
+        print("Failed to pay invoices: user is not a financial manager")
+        return False
+    return False
+
+def pay_multiple_invoices(connection, internal_ids, paid_by, payment_method, payment_number, payment_date = None, payment_time = None):
+    if user_role_check(connection, paid_by, "financial_manager"):
+        for internal_id in internal_ids:
+            pay_invoice(connection, internal_id, paid_by, payment_method, payment_number, payment_date, payment_time)
+        return True
+    else:
+        print("Failed to pay invoices: user is not a financial manager")
         return False
     return False
 
