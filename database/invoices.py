@@ -30,6 +30,7 @@ def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_da
     if description != None:
         columns += ", description"
         values += f", '{description}'"
+    print(f"New invoices inserted {columns} = {values}")
     return insert_into_table(connection, "invoice", columns, values)
 
 def get_invoices(connection, page_number, page_size, sort_by, sort_order, restrictions = "1"):

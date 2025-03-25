@@ -153,10 +153,9 @@ def get_invoices_handler(data):
 
 def add_invoice_handler(data):
     connection = connect_to_db("company_db")
-    vendor_id = get_vendor_id(connection, data['vendor'])
+    vendor_id = data.get('vendor_id')
     if not vendor_id:
-        print("sending request for new vendor")
-        return {"status": "fail", "message": "No vendor"}
+        return {"status": "fail", "message": "Missing vendor_id"}
 
     add_invoice(
         connection=connection,
@@ -270,7 +269,12 @@ def add_vendor_handler(data):
     address = data.get("address")
     email = data.get("email")
     add_vendor(connection,name,name,gl,payment,address,email)
-    return {"status":"ok"}
+    cursor = connection.cursor()
+    cursor.execute("SELECT last_insert_rowid()")
+    vendor_id = cursor.fetchone()[0]
+    connection.close()
+
+    return {"status": "ok", "vendor_id": vendor_id}
 
 def mark_invoices_paid_handler(data):
     invoice_ids = data.get("invoiceIds", [])
@@ -318,6 +322,56 @@ def get_all_users_handler(data):
     return {"users": users_json}
 
 
+def update_vendor_handler(data):
+    connection = connect_to_db("company_db")
+    name = data.get("name")
+    gl = data.get("gl")
+    payment = data.get("payment")
+    address = data.get("address")
+    email = data.get("email")
+
+    cursor = connection.cursor()
+    cursor.execute("""
+        UPDATE vendor
+        SET default_gl_account = ?, payment_info = ?, address = ?, email = ?
+        WHERE vendor_name = ?
+    """, (gl, payment, address, email, name))
+
+    cursor.execute("SELECT last_insert_rowid()")
+    vendor_id = cursor.fetchone()[0]
+
+    connection.commit()
+    connection.close()
+
+    return {"status": "ok", "vendor_id": vendor_id}
+
+def get_all_vendors_handler(data):
+    connection = connect_to_db("company_db")
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute("SELECT vendor_id, vendor_name, email, address, default_gl_account FROM vendor")
+        vendors = cursor.fetchall()
+
+        vendor_list = []
+        for vendor in vendors:
+            vendor_list.append({
+                "vendor_id": vendor[0],
+                "name": vendor[1],
+                "email": vendor[2],
+                "address": vendor[3],
+                "gl": vendor[4]
+            })
+
+        return {"status": "success", "vendors": vendor_list}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    finally:
+        connection.close()
+
+
+
 # Add handler mapping
 MESSAGE_HANDLERS = {
     'LOGIN': login_handler,
@@ -330,7 +384,9 @@ MESSAGE_HANDLERS = {
     'GET_INVOICES_BY_IDS': get_invoice_by_ids_handler,
     'MARK_INVOICES_PAID': mark_invoices_paid_handler,
     'ADD_VENDOR': add_vendor_handler,
-    'CREATE_ACCOUNT': create_account_handler
+    'CREATE_ACCOUNT': create_account_handler,
+    'UPDATE_VENDOR': update_vendor_handler,
+    'GET_ALL_VENDORS': get_all_vendors_handler,
     'CREATE_ACCOUNT': create_account_handler,
     'GET_ALL_USERS': get_all_users_handler,
 }
