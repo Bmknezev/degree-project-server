@@ -706,6 +706,32 @@ def add_role_to_user_handler(data):
     finally:
         connection.close()
 
+def check_role_handler(data):
+    token = data.get('token')
+    role = data.get('role')
+
+    username = active_sessions.get(token)
+    if not username:
+        return {"authorized": False}
+
+    connection = connect_to_db("company_db")
+    cursor = connection.cursor()
+
+    print(f"Token: {token}")
+    print(f"Username from token: {username}")
+
+    try:
+        cursor.execute("""
+            SELECT r.role FROM user u
+            JOIN role r ON u.user_id = r.user_id
+            WHERE u.username = ? AND r.role = ?
+        """, (username, role))
+        result = cursor.fetchone()
+
+        return {"authorized": bool(result)}
+    finally:
+        connection.close()
+
 
 # Add handler mapping
 MESSAGE_HANDLERS = {
@@ -733,7 +759,8 @@ MESSAGE_HANDLERS = {
     'PAY_WITH_PAYPAL': pay_with_paypal_handler,
     'GET_VENDOR_BY_ID': get_vendor_by_id_handler,
     'GET_AVAILABLE_ROLES': get_available_roles_handler,
-    'ADD_ROLE_TO_USER': add_role_to_user_handler
+    'ADD_ROLE_TO_USER': add_role_to_user_handler,
+    'CHECK_ROLE': check_role_handler
 }
 
 
