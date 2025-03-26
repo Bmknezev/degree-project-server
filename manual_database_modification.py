@@ -85,7 +85,7 @@ add_vendor(connection, "Establishment", "Establishment", "engineering", "payment
 
 
     # add invoices
-""
+"""
 company_id = get_vendor_id(connection, "Company")
 organization_id = get_vendor_id(connection, "Organization")
 corporation_id = get_vendor_id(connection, "Corporation")
@@ -117,5 +117,5 @@ for i in range(0, 10):
                 tax = taxes[i],
                 email = emails[i],
                 description = "description")
-""
+"""
 
