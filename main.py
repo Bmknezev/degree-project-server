@@ -68,6 +68,7 @@ def login_handler(data):
     password = data.get('password', '')
 
     connection = connect_to_db("company_db")
+
     if login(connection, username, password):
         # Generate a session token (UUID)
         token = str(uuid.uuid4())
@@ -220,7 +221,7 @@ def add_invoice_handler(data):
         subtotal=data.get('subTotal', "NULL"),
         tax=data.get('tax', "NULL"),
         gl_account=data['GL'],
-        email=data['email'],
+        email=data['email']
     )
 
     # Get internal_id of last inserted row

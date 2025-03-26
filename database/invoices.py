@@ -55,10 +55,6 @@ def get_invoices_by_ids(connection, invoice_ids):
     id_list = ','.join(str(int(id)) for id in invoice_ids)  # ensure IDs are integers
     return select_tuple_from_table(connection, "invoice", f" WHERE internal_id IN ({id_list})")
 
-def get_invoices_new(connection, page_number, page_size, sort_by, sort_order, restrictions = "1"):
-    invoices = select_tuple_from_table(connection, "invoice", f" WHERE {restrictions} ORDER BY {sort_by} {sort_order} LIMIT {page_size} OFFSET {page_size * (page_number - 1)}")
-    print(f" - {invoices}")
-    return invoices
 
 def create_invoice_table(connection):
     if table_exists(connection, "invoice"):
@@ -109,4 +105,6 @@ if __name__ == '__main__':
                 uploader_id = admin_id,
                 subtotal = 180,
                 tax = 20)
-"""
+
+    #print(get_invoices(connection, 1, 5, "invoice_number", "ASC"))
+    #print(get_invoices(connection, 1, 5, "invoice_number", "DESC", "company LIKE 'company'"))

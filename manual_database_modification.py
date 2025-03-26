@@ -1,11 +1,9 @@
-from database.approval_history import *
-from database.payment_history import *
 from database.user_accounts import *
 from database.vendors import *
 from database.invoices import *
 from database.views import *
 
-# initialize the connection to the database
+    # initialize the connection to the database
 connection = connect_to_db("company_db")
 
     # create the user table
