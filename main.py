@@ -590,20 +590,44 @@ def get_payment_summary_handler(data):
         "amount": row[2]
         })
     return {"status": "success", "data": list}
-def approve_invoices_handler(data):
 
+def approve_invoices_handler(data):
+    token = data.get("token")
     invoice_ids = data.get("invoiceIds", [])
 
-    if not isinstance(invoice_ids, list) or not invoice_ids:
+    # Validate token
+    username = active_sessions.get(token)
+    if not username:
         return {
             "status": "error",
-            "message": "Missing or invalid 'invoiceIds'. Expected a non-empty list."
+            "message": "Unauthorized: Invalid or missing token."
         }
 
+    # Validate role
     connection = connect_to_db("company_db")
     cursor = connection.cursor()
-
     try:
+        cursor.execute("""
+            SELECT 1 FROM user u
+            JOIN role r ON u.user_id = r.user_id
+            WHERE u.username = ? AND r.role = 'approval_manager'
+        """, (username,))
+        result = cursor.fetchone()
+
+        if not result:
+            return {
+                "status": "error",
+                "message": "Unauthorized: You do not have the 'approval_manager' role."
+            }
+
+        # Validate invoice IDs
+        if not isinstance(invoice_ids, list) or not invoice_ids:
+            return {
+                "status": "error",
+                "message": "Missing or invalid 'invoiceIds'. Expected a non-empty list."
+            }
+
+        # Update invoices
         for invoice_id in invoice_ids:
             cursor.execute(
                 "UPDATE invoice SET status = 'awaiting payment' WHERE internal_id = ?",
@@ -625,6 +649,7 @@ def approve_invoices_handler(data):
 
     finally:
         connection.close()
+
 
 def get_vendor_by_id_handler(data):
     vendor_id = data.get("vendor_id")
