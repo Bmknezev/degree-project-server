@@ -123,6 +123,7 @@ if __name__ == "__main__":
     table_name = "payment_history"
     columns = ("payment_id INTEGER PRIMARY KEY, "
                "internal_id INTEGER NOT NULL, "
+               "vendor_id INTEGER NOT NULL, "
                "payment_date DATE NOT NULL DEFAULT CURRENT_DATE, "
                "payment_time TIME NOT NULL DEFAULT CURRENT_TIME, "
                "paid_by INTEGER NOT NULL, "

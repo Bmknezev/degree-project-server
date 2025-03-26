@@ -3,8 +3,8 @@ from database.vendors import *
 from database.upload_history import *
 from database.user_accounts import *
 
-def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_date, status, uploader_id, subtotal = None, tax = None, gl_account = None, email = None, date_edited = None, description = None):
-    columns = "invoice_number, vendor, total, gl_account, issue_date, due_date, status"
+def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_date, uploader_id, subtotal = None, tax = None, gl_account = None, email = None, description = None):
+    columns = "invoice_number, vendor, total, gl_account, issue_date, due_date"
         # removes any character from the total value that is not a digit or a period
     total = ''.join(filter(lambda x: x.isdigit() or x == '.', str(total)))
         # removes any character from the vendor_id value that is not a digit
@@ -12,7 +12,7 @@ def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_da
         # if the gl_account is not provided, set it to the default gl account for the vendor
     if gl_account == None:
         gl_account = get_gl_account_from_vendor(connection, vendor_id)
-    values = f"'{invoice_number}', '{vendor_id}', {total}, '{gl_account}', '{issue_date}', '{due_date}', '{status}'"
+    values = f"'{invoice_number}', '{vendor_id}', {total}, '{gl_account}', '{issue_date}', '{due_date}'"
     if subtotal != None:
         columns += ", subtotal"
             # removes any character from the subtotal value that is not a digit or a period
@@ -26,9 +26,6 @@ def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_da
     if email != None:
         columns += ", email"
         values += f", '{email}'"
-    if date_edited != None:
-        columns += ", date_edited"
-        values += f", '{date_edited}'"
     if description != None:
         columns += ", description"
         values += f", '{description}'"
@@ -69,15 +66,13 @@ def create_invoice_table(connection):
     columns = ("internal_id INTEGER PRIMARY KEY, "
                "invoice_number VARCHAR(255) NOT NULL, "
                "vendor INTEGER NOT NULL, "
-               "subtotal DECIMAL(10, 2) CHECK (subtotal >= 0), "
-               "tax DECIMAL(10, 2) CHECK (tax >= 0), "
+               "subtotal DECIMAL(10, 2) NOT NULL CHECK (subtotal >= 0), "
+               "tax DECIMAL(10, 2) NOT NULL CHECK (tax >= 0), "
                "total DECIMAL(10, 2) NOT NULL CHECK (total >= 0), "
                "gl_account VARCHAR(255) NOT NULL, "
                "email VARCHAR(255), "
                "issue_date DATE NOT NULL, "
                "due_date DATE NOT NULL, "
-               "date_edited DATE NOT NULL DEFAULT CURRENT_DATE, "
-               "status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'paid')), "
                "description VARCHAR(255), "
                "FOREIGN KEY (vendor) REFERENCES vendor(vendor_id)")
     return create_table(connection, "invoice", columns)
@@ -86,31 +81,13 @@ def create_invoice_table(connection):
 if __name__ == '__main__':
     # Initialize the connection to the database
     connection = connect_to_db("database")
-    table_name = "invoice"
-    columns = ("internal_id INTEGER PRIMARY KEY, "
-               "invoice_number VARCHAR(255) NOT NULL, "
-               "vendor INTEGER NOT NULL, "
-               "subtotal DECIMAL(10, 2) CHECK (subtotal >= 0), "
-               "tax DECIMAL(10, 2) CHECK (tax >= 0), "
-               "total DECIMAL(10, 2) NOT NULL CHECK (total >= 0), "
-               "gl_account VARCHAR(255) NOT NULL, "
-               "email VARCHAR(255), "
-               "issue_date DATE NOT NULL, "
-               "due_date DATE NOT NULL, "
-               "date_edited DATE NOT NULL DEFAULT CURRENT_DATE, "
-               "status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'paid')), "
-               "description VARCHAR(255), "
-               "FOREIGN KEY (vendor) REFERENCES vendor(vendor_id)")
     #drop_table(connection, table_name)
-    #create_table(connection, table_name, columns)
+    create_invoice_table(connection)
     #vendor1_id = get_vendor_id(connection, "internal1")
     #admin_id = get_user_id(connection, "admin")
     #print(get_invoices(connection, 1, 5, "invoice_number", "ASC"))
     #print(get_invoices(connection, 1, 5, "invoice_number", "DESC", "company LIKE 'company'"))
 
-        # execute the query
-    result = execute_query(connection, query)
-    print(result)
 """
     add_invoice(connection,
                 invoice_number = "12345",

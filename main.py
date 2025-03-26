@@ -11,6 +11,8 @@ import easyocr
 from flask import Flask, request
 from werkzeug.utils import secure_filename
 import test
+from database.approval_history import approve_multiple_invoices
+from database.payment_history import pay_multiple_invoices
 from database.user_accounts import *
 from database.invoices import *
 from database.vendors import *
@@ -131,15 +133,15 @@ def get_invoices_handler(data):
 
     # Build restriction
     if status_filter == "Paid Invoices":
-        restrictions = "i.status LIKE 'paid'"
+        status_restrictions = "s.status LIKE 'paid'"
     elif status_filter == "Waiting for Approval":
-        restrictions = "i.status LIKE 'awaiting approval'"
+        status_restrictions = "s.status LIKE 'awaiting approval'"
     elif status_filter == "Waiting for Payment":
-        restrictions = "i.status LIKE 'awaiting payment'"
+        status_restrictions = "s.status LIKE 'awaiting payment'"
     elif status_filter == "Unpaid Invoices":
-        restrictions = "i.status IN ('awaiting approval', 'awaiting payment')"
+        status_restrictions = "s.status IN ('awaiting approval', 'awaiting payment')"
     else:
-        restrictions = "1"
+        status_restrictions = "1"
 
     # Join invoice and vendor table
     query = f"""
@@ -148,9 +150,8 @@ def get_invoices_handler(data):
             i.gl_account, v.email, i.issue_date, i.due_date, de.date_edited, s.status, i.description
         FROM invoice i
         JOIN vendor v ON i.vendor = v.vendor_id
-        LEFT JOIN date_edited de ON i.internal_id = de.internal_id
-        LEFT JOIN status s ON i.internal_id = s.internal_id
-        WHERE {restrictions}
+        INNER JOIN date_edited de ON i.internal_id = de.internal_id
+        INNER JOIN status s ON i.internal_id = s.internal_id AND {status_restrictions}
         ORDER BY {sort_by} {sort_order}
         LIMIT ? OFFSET ?
     """
@@ -184,7 +185,8 @@ def get_invoices_handler(data):
         SELECT COUNT(*)
         FROM invoice i
         JOIN vendor v ON i.vendor = v.vendor_id
-        WHERE {restrictions}
+        INNER JOIN date_edited de ON i.internal_id = de.internal_id
+        INNER JOIN status s ON i.internal_id = s.internal_id AND {status_restrictions}
     """
     cursor.execute(count_query)
     total_invoices = cursor.fetchone()[0]
@@ -199,7 +201,10 @@ def get_invoices_handler(data):
     return {"invoices": invoices_json, "totalPages": total_pages}
 
 def add_invoice_handler(data):
+    token = request.get_json().get("token")
+    sender_username = active_sessions.get(token)
     connection = connect_to_db("company_db")
+    user_id = get_user_id(connection, sender_username)
     vendor_id = data.get('vendor_id')
     if not vendor_id:
         return {"status": "fail", "message": "Missing vendor_id"}
@@ -211,13 +216,11 @@ def add_invoice_handler(data):
         total=data['total'],
         issue_date=data['issueDate'],
         due_date=data['due'],
-        status="awaiting approval",
+        uploader_id = user_id,
         subtotal=data.get('subTotal', "NULL"),
         tax=data.get('tax', "NULL"),
         gl_account=data['GL'],
         email=data['email'],
-        date_edited="NULL",
-        description="NULL"
     )
 
     # Get internal_id of last inserted row
@@ -323,11 +326,20 @@ def add_vendor_handler(data):
 
 def mark_invoices_paid_handler(data):
     invoice_ids = data.get("invoiceIds", [])
+    payment_number = data.get("paymentNumber")
+    amount = data.get("amount")
+    vendor = data.get("vendor")
+    token = request.get_json().get("token")
+    sender_username = active_sessions.get(token)
     connection = connect_to_db("company_db")
+    user_id = get_user_id(connection, sender_username)
     cursor = connection.cursor()
 
-    for invoice_id in invoice_ids:
-        cursor.execute("UPDATE invoice SET status = 'paid', date_edited = CURRENT_DATE WHERE internal_id = ?",(invoice_id,))
+    pay_multiple_invoices(connection = connection,
+                          internal_ids = invoice_ids,
+                          paid_by = user_id,
+                          payment_method = "cheque",
+                          payment_number = payment_number)
 
     connection.commit()
     connection.close()
@@ -429,6 +441,9 @@ def pay_with_paypal_handler(data):
 
 
 
+
+
+
 def create_account_handler(data):
     connection = connect_to_db("company_db")
     status = create_account(
@@ -517,6 +532,9 @@ def get_all_vendors_handler(data):
 def approve_invoices_handler(data):
 
     invoice_ids = data.get("invoiceIds", [])
+    token = request.get_json().get("token")
+    sender_username = active_sessions.get(token)
+
 
     if not isinstance(invoice_ids, list) or not invoice_ids:
         return {
@@ -525,14 +543,13 @@ def approve_invoices_handler(data):
         }
 
     connection = connect_to_db("company_db")
+    user_id = get_user_id(connection, sender_username)
     cursor = connection.cursor()
 
     try:
-        for invoice_id in invoice_ids:
-            cursor.execute(
-                "UPDATE invoice SET status = 'awaiting payment' WHERE internal_id = ?",
-                (invoice_id,)
-            )
+        approve_multiple_invoices(connection = connection,
+                                  internal_ids = invoice_ids,
+                                  approved_by = user_id)
 
         connection.commit()
 
@@ -584,7 +601,6 @@ def get_vendor_by_id_handler(data):
         return {"status": "error", "message": str(e)}
     finally:
         connection.close()
-
 
 
 # Add handler mapping
