@@ -108,3 +108,4 @@ if __name__ == '__main__':
 
     #print(get_invoices(connection, 1, 5, "invoice_number", "ASC"))
     #print(get_invoices(connection, 1, 5, "invoice_number", "DESC", "company LIKE 'company'"))
+    """
