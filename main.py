@@ -200,8 +200,23 @@ def get_invoices_handler(data):
 def add_invoice_handler(data):
     connection = connect_to_db("company_db")
     vendor_id = data.get('vendor_id')
+
+    token = request.get_json().get("token")
+    sender_username = active_sessions.get(token)
+
     if not vendor_id:
         return {"status": "fail", "message": "Missing vendor_id"}
+
+    cursor = connection.cursor()
+    cursor.execute("SELECT user_id FROM user WHERE username = ?", (sender_username,))
+    row = cursor.fetchone()
+
+    if row:
+        user_id = row[0]
+    else:
+        # handle case where username isn't found
+        return {"status": "error", "message": "User not found"}
+
 
     add_invoice(
         connection=connection,
@@ -216,7 +231,8 @@ def add_invoice_handler(data):
         gl_account=data['GL'],
         email=data['email'],
         date_edited="NULL",
-        description="NULL"
+        description="NULL",
+        uploader_id =user_id
     )
 
     # Get internal_id of last inserted row
