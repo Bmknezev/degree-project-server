@@ -3,6 +3,10 @@ import os
 import shutil
 import uuid
 
+import reportlab
+
+#pip install reportlab
+
 import easyocr
 from flask import Flask, request
 from werkzeug.utils import secure_filename
@@ -10,6 +14,11 @@ import test
 from database.user_accounts import *
 from database.invoices import *
 from database.vendors import *
+from reportlab.lib.pagesizes import LETTER
+from reportlab.pdfgen import canvas
+import os
+import datetime
+
 
 import requests
 
@@ -317,7 +326,7 @@ def mark_invoices_paid_handler(data):
     cursor = connection.cursor()
 
     for invoice_id in invoice_ids:
-        cursor.execute("UPDATE invoice SET status = 'paid', date_paid = CURRENT_DATE WHERE internal_id = ?",(invoice_id,))
+        cursor.execute("UPDATE invoice SET status = 'paid', date_edited = CURRENT_DATE WHERE internal_id = ?",(invoice_id,))
 
     connection.commit()
     connection.close()
@@ -377,6 +386,7 @@ def pay_with_paypal_handler(data):
 
         # log PayPal batch ID
         print("PayPal payout sent:", payout_result.get("batch_header", {}).get("payout_batch_id"))
+        payout_id = payout_result["batch_header"]["payout_batch_id"]
 
         # Step 6: Mark invoices as paid
         cursor.executemany(
@@ -385,10 +395,30 @@ def pay_with_paypal_handler(data):
         )
         connection.commit()
 
+        # Path setup
+        receipt_filename = f"receipt_{payout_id}.pdf"
+        receipt_path = os.path.join("receipts", receipt_filename)  # Store in a subfolder, or temp dir
+
+        os.makedirs("receipts", exist_ok=True)
+
+        generate_receipt(
+            save_path=receipt_path,
+            paid_by=sender_username,
+            vendor_name=vendor_name,
+            amount=total_amount,  # You can calculate this via SQL or sum on frontend
+            payment_number=payout_id,
+            invoice_ids=invoice_ids
+        )
+
+        with open(receipt_path, "rb") as f:
+            encoded_pdf = base64.b64encode(f.read()).decode("utf-8")
+
         return {
             "status": "success",
             "message": f"Paid ${total_amount:.2f} to {vendor_email} via PayPal.",
-            "paypal_batch_id": payout_result.get("batch_header", {}).get("payout_batch_id", "N/A")
+            "paypal_batch_id": payout_id,
+            "receiptData": encoded_pdf,
+            "receiptFilename": receipt_filename
         }
 
     except Exception as e:
@@ -721,6 +751,48 @@ def send_paypal_payout(sender_email, recipient_email, amount):
         raise Exception(f"PayPal payout failed: {response.text}")
 
     return response.json()
+
+# -----------------------------------------------------------------------------
+# Generates receipts
+# -----------------------------------------------------------------------------
+
+def generate_receipt(save_path, paid_by, vendor_name, amount, payment_number, invoice_ids):
+    c = canvas.Canvas(save_path, pagesize=LETTER)
+    width, height = LETTER
+
+    # Header
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(200, height - 50, "Payment Receipt")
+
+    # Details
+    c.setFont("Helvetica", 12)
+    y = height - 100
+    c.drawString(50, y, f"Paid By (User ID): {paid_by}")
+    y -= 20
+    c.drawString(50, y, f"Vendor: {vendor_name}")
+    y -= 20
+    c.drawString(50, y, f"Payment Method: PayPal")
+    y -= 20
+    c.drawString(50, y, f"Transaction ID: {payment_number}")
+    y -= 20
+    c.drawString(50, y, f"Date: {datetime.date.today().isoformat()}")
+    y -= 20
+    c.drawString(50, y, f"Time: {datetime.datetime.now().strftime('%H:%M:%S')}")
+    y -= 30
+    c.drawString(50, y, f"Total Paid: ${amount:.2f}")
+    y -= 30
+    c.drawString(50, y, f"Invoices Paid:")
+
+    for iid in invoice_ids:
+        y -= 20
+        c.drawString(70, y, f"- Invoice ID: {iid}")
+
+    # Footer
+    y -= 40
+    c.setFont("Helvetica-Oblique", 10)
+    c.drawString(50, y, "Thank you for using our invoice system.")
+
+    c.save()
 
 
 # -----------------------------------------------------------------------------
