@@ -19,6 +19,9 @@ def get_vendor_id(connection, internal_name):
 def get_gl_account_from_vendor(connection, vendor_id):
     return select_value_from_table(connection, "vendor", "default_gl_account", f"WHERE vendor_id = {vendor_id}", fetch_one = True, show_results = False)[0]
 
+def get_vendor_name(connection, vendor_id):
+    return select_value_from_table(connection, "vendor", "vendor_name", f"WHERE vendor_id = {vendor_id}", fetch_one = True)[0]
+
 if __name__ == '__main__':
     connection = connect_to_db("database")
     table_name = 'vendor'

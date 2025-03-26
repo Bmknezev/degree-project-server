@@ -1,3 +1,5 @@
+import datetime
+
 from database.db_interaction_functions import *
 from database.vendors import *
 from database.upload_history import *
@@ -56,6 +58,18 @@ def get_invoices_by_ids(connection, invoice_ids):
     id_list = ','.join(str(int(id)) for id in invoice_ids)  # ensure IDs are integers
     return select_tuple_from_table(connection, "invoice", f" WHERE internal_id IN ({id_list})")
 
+def get_oldest_year(connection):
+    return(select_value_from_table(connection,"invoice","MIN(due_date)", fetch_one=True))
+
+def get_gl_accounts(connection):
+    return select_value_from_table(connection,"invoice",f" DISTINCT gl_account")
+
+def get_payement_amount_per_month(connection, year, account):
+    return select_value_from_table(connection,"invoice",f" strftime('%m', due_date), SUM(total)", f" WHERE strftime('%Y', due_date) LIKE '{year}' AND gl_account LIKE '{account}' GROUP BY strftime('%m', due_date)")
+
+def get_payment_summary(connection, year, account, month):
+    month_number = str(datetime.datetime.strptime(month, "%B").month).zfill(2)
+    return select_value_from_table(connection,"invoice",f" due_date, vendor, total", f" WHERE strftime('%Y', due_date) LIKE '{year}' AND gl_account = '{account}' AND strftime('%m', due_date) LIKE '{month_number}'")
 
 if __name__ == '__main__':
     # Initialize the connection to the database
