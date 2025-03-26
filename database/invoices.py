@@ -67,9 +67,8 @@ def get_gl_accounts(connection):
 def get_payement_amount_per_month(connection, year, account):
     return select_value_from_table(connection,"invoice",f" strftime('%m', due_date), SUM(total)", f" WHERE strftime('%Y', due_date) LIKE '{year}' AND gl_account LIKE '{account}' GROUP BY strftime('%m', due_date)")
 
-def get_payment_summary(connection, year, account, month):
-    month_number = str(datetime.datetime.strptime(month, "%B").month).zfill(2)
-    return select_value_from_table(connection,"invoice",f" due_date, vendor, total", f" WHERE strftime('%Y', due_date) LIKE '{year}' AND gl_account = '{account}' AND strftime('%m', due_date) LIKE '{month_number}'")
+def get_payment_summary(connection, year, account):
+    return select_value_from_table(connection,"invoice",f" due_date, vendor, total", f" WHERE strftime('%Y', due_date) LIKE '{year}' AND gl_account = '{account}'")
 
 if __name__ == '__main__':
     # Initialize the connection to the database

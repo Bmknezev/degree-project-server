@@ -549,7 +549,7 @@ def get_payement_amount_per_month_handler(data):
 
 def get_payment_summary_handler(data):
     connection = connect_to_db("company_db")
-    response = get_payment_summary(connection, data.get("year"), data.get("account"), data.get("month"))
+    response = get_payment_summary(connection, data.get("year"), data.get("account"))
     list = []
     for row in response:
         list.append({
