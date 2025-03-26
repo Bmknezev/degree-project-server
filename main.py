@@ -698,7 +698,7 @@ def api_message():
     msg_type = payload.get('type', '').upper()
     message_data = payload.get('data', {})
 
-    if msg_type != "LOGIN":
+    if msg_type not in ("LOGIN", "CREATE_ACCOUNT"):
         token = payload.get('token')
         if token not in active_sessions:
             return jsonify({'error': 'Unauthorized'}), 401
