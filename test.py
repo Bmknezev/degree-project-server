@@ -237,6 +237,8 @@ def OCR(file):
             t = item.pop()
             if "$" in t:
                 t = t[1:]
+            if "5" in t[1]:
+                t = t[1:]
             data[key] = t
 
     print("Done")
