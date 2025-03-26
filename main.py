@@ -11,6 +11,8 @@ from database.user_accounts import *
 from database.invoices import *
 from database.vendors import *
 
+import requests
+
 # Initialize the Flask app and EasyOCR reader
 app = Flask(__name__)
 reader = easyocr.Reader(['en'])
@@ -36,6 +38,11 @@ except:
 
 # Store tokens in-memory
 active_sessions = {}  # token -> username
+
+#paypal varaibles
+PAYPAL_CLIENT_ID = "AX0u4jwN98Yd7HVVyHqzqVDtjWpJpNQN0fANuBWFT5pgjEYWFzFxw0JPTMyMk0pK4mu4Q-34om47kV1X"
+PAYPAL_CLIENT_SECRET = "EMjNTD2FRS61NoXJBuFgAtTR3BMfvzNJBBudRPEemIxGTQ7M00bMr43fLSjC7dHAZOc9WP7in9h6oSKO"
+PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com"
 
 
 # -----------------------------------------------------------------------------
@@ -316,6 +323,80 @@ def mark_invoices_paid_handler(data):
     connection.close()
     return {"status": "success", "message": f"{len(invoice_ids)} invoice(s) marked as paid."}
 
+def pay_with_paypal_handler(data):
+    invoice_ids = data.get("invoiceIds", [])
+
+    if not invoice_ids:
+        return {"status": "error", "message": "Missing invoiceIds or vendor name."}
+
+    # Step 1: Validate session & get sender email
+    token = request.get_json().get("token")
+    sender_username = active_sessions.get(token)
+    if not sender_username:
+        return {"status": "error", "message": "Invalid session."}
+
+    connection = connect_to_db("company_db")
+    cursor = connection.cursor()
+
+    try:
+        # Step 1: Get vendor_id from the first invoice
+        cursor.execute(
+            "SELECT vendor FROM invoice WHERE internal_id = ?",
+            (invoice_ids[0],)
+        )
+        result = cursor.fetchone()
+        if not result:
+            return {"status": "error", "message": "Invoice not found."}
+        vendor_id = result[0]
+
+        # Step 2: Get vendor email
+        cursor.execute(
+            "SELECT vendor_name, email FROM vendor WHERE vendor_id = ?",
+            (vendor_id,)
+        )
+        vendor_result = cursor.fetchone()
+        if not vendor_result:
+            return {"status": "error", "message": "Vendor not found."}
+
+        vendor_name, vendor_email = vendor_result
+
+        # Step 3: Calculate total amount
+        query = f"""
+            SELECT SUM(total) FROM invoice
+            WHERE internal_id IN ({','.join(['?'] * len(invoice_ids))})
+        """
+        cursor.execute(query, invoice_ids)
+        total_amount = cursor.fetchone()[0] or 0
+
+        # Step 4: Get sender's email
+        cursor.execute("SELECT email FROM user WHERE username = ?", (sender_username,))
+        sender_email = cursor.fetchone()[0]
+
+        # Send PayPal payout
+        payout_result = send_paypal_payout("sb-ob2s233980163_api1.business.example.com", "sb-uxk4033773358@business.example.com", total_amount)
+
+        # log PayPal batch ID
+        print("PayPal payout sent:", payout_result.get("batch_header", {}).get("payout_batch_id"))
+
+        # Step 6: Mark invoices as paid
+        cursor.executemany(
+            "UPDATE invoice SET status = 'paid', date_edited = CURRENT_DATE WHERE internal_id = ?",
+            [(iid,) for iid in invoice_ids]
+        )
+        connection.commit()
+
+        return {
+            "status": "success",
+            "message": f"Paid ${total_amount:.2f} to {vendor_email} via PayPal.",
+            "paypal_batch_id": payout_result.get("batch_header", {}).get("payout_batch_id", "N/A")
+        }
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    finally:
+        connection.close()
+
+
 
 def create_account_handler(data):
     connection = connect_to_db("company_db")
@@ -438,6 +519,42 @@ def approve_invoices_handler(data):
     finally:
         connection.close()
 
+def get_vendor_by_id_handler(data):
+    vendor_id = data.get("vendor_id")
+
+    if not vendor_id:
+        return {"status": "error", "message": "Missing vendor_id"}
+
+    connection = connect_to_db("company_db")
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT vendor_id, vendor_name, email, address, default_gl_account
+            FROM vendor
+            WHERE vendor_id = ?
+        """, (vendor_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            return {"status": "error", "message": "Vendor not found"}
+
+        vendor_data = {
+            "id": row[0],
+            "name": row[1],
+            "email": row[2],
+            "address": row[3],
+            "defaultGL": row[4]
+        }
+
+        return {"status": "success", "vendor": vendor_data}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    finally:
+        connection.close()
+
+
 
 # Add handler mapping
 MESSAGE_HANDLERS = {
@@ -457,7 +574,9 @@ MESSAGE_HANDLERS = {
     'GET_ALL_USERS': get_all_users_handler,
     'ADMIN_DELETE_ACCOUNT': admin_delete_account_handler,
     'APPROVE_INVOICES' : approve_invoices_handler,
-    'LOGOUT': logout_handler
+    'LOGOUT': logout_handler,
+    'PAY_WITH_PAYPAL': pay_with_paypal_handler,
+    'GET_VENDOR_BY_ID': get_vendor_by_id_handler,
 }
 
 
@@ -549,6 +668,59 @@ def sample():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
     return jsonify(data), 200
+
+
+
+# -----------------------------------------------------------------------------
+# Paypal stuff
+# -----------------------------------------------------------------------------
+import requests
+
+def get_paypal_access_token():
+    response = requests.post(
+        f"{PAYPAL_API_BASE}/v1/oauth2/token",
+        headers={"Accept": "application/json"},
+        data={"grant_type": "client_credentials"},
+        auth=(PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET)
+    )
+    response.raise_for_status()
+    return response.json()["access_token"]
+
+def send_paypal_payout(sender_email, recipient_email, amount):
+    access_token = get_paypal_access_token()
+
+    payout_batch = {
+        "sender_batch_header": {
+            "sender_batch_id": str(uuid.uuid4()),
+            "email_subject": "You have a payment from Invoice Manager",
+        },
+        "items": [
+            {
+                "recipient_type": "EMAIL",
+                "amount": {
+                    "value": f"{amount:.2f}",
+                    "currency": "USD"
+                },
+                "receiver": recipient_email,
+                "note": "Payment for approved invoices.",
+                "sender_item_id": str(uuid.uuid4())
+            }
+        ]
+    }
+
+    response = requests.post(
+        f"{PAYPAL_API_BASE}/v1/payments/payouts",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}"
+        },
+        json=payout_batch
+    )
+
+    if response.status_code not in [200, 201]:
+        raise Exception(f"PayPal payout failed: {response.text}")
+
+    return response.json()
 
 
 # -----------------------------------------------------------------------------
