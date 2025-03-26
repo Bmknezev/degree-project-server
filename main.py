@@ -467,11 +467,20 @@ def get_all_users_handler(data):
     # Build JSON array manually
     users_json = []
     for row in result:
+        first_name, last_name, username, email, user_id= row
+
+        cursor = connection.cursor()
+
+        cursor.execute("SELECT role FROM role WHERE user_id = ?", (user_id,))
+        role_rows = cursor.fetchall()
+        roles = [r[0] for r in role_rows]
+
         users = {
-            "first_name": row[0],
-            "last_name": row[1],
-            "username": row[2],  # vendor_name
-            "email": row[3]
+            "first_name": first_name,
+            "last_name": last_name,
+            "username": username,  # vendor_name
+            "email": email,
+            "roles": roles
         }
         users_json.append(users)
     return {"users": users_json}
@@ -652,6 +661,76 @@ def get_vendor_by_id_handler(data):
     finally:
         connection.close()
 
+def get_available_roles_handler(data):
+    connection = connect_to_db("company_db")
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute("SELECT DISTINCT role FROM role")
+        rows = cursor.fetchall()
+        roles = [row[0] for row in rows]
+        return {"status": "success", "roles": roles}
+    except Exception as e:
+        return {"error": f"Failed to fetch roles: {str(e)}"}
+    finally:
+        connection.close()
+
+def add_role_to_user_handler(data):
+    username = data.get("username")
+    role = data.get("role")
+
+    if not username or not role:
+        return {"status": "error", "message": "Missing username or role."}
+
+    connection = connect_to_db("company_db")
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute("SELECT user_id FROM user WHERE username = ?", (username,))
+        result = cursor.fetchone()
+        if not result:
+            return {"status": "error", "message": "User not found."}
+
+        user_id = result[0]
+
+        # Check if role already exists
+        cursor.execute("SELECT 1 FROM role WHERE user_id = ? AND role = ?", (user_id, role))
+        if cursor.fetchone():
+            return {"status": "error", "message": "Role already assigned."}
+
+        cursor.execute("INSERT INTO role (user_id, role) VALUES (?, ?)", (user_id, role))
+        connection.commit()
+        return {"status": "success", "message": "Role added."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+    finally:
+        connection.close()
+
+def check_role_handler(data):
+    token = data.get('token')
+    role = data.get('role')
+
+    username = active_sessions.get(token)
+    if not username:
+        return {"authorized": False}
+
+    connection = connect_to_db("company_db")
+    cursor = connection.cursor()
+
+    print(f"Token: {token}")
+    print(f"Username from token: {username}")
+
+    try:
+        cursor.execute("""
+            SELECT r.role FROM user u
+            JOIN role r ON u.user_id = r.user_id
+            WHERE u.username = ? AND r.role = ?
+        """, (username, role))
+        result = cursor.fetchone()
+
+        return {"authorized": bool(result)}
+    finally:
+        connection.close()
 
 
 # Add handler mapping
@@ -679,6 +758,9 @@ MESSAGE_HANDLERS = {
     'LOGOUT': logout_handler,
     'PAY_WITH_PAYPAL': pay_with_paypal_handler,
     'GET_VENDOR_BY_ID': get_vendor_by_id_handler,
+    'GET_AVAILABLE_ROLES': get_available_roles_handler,
+    'ADD_ROLE_TO_USER': add_role_to_user_handler,
+    'CHECK_ROLE': check_role_handler
 }
 
 
@@ -698,7 +780,7 @@ def api_message():
     msg_type = payload.get('type', '').upper()
     message_data = payload.get('data', {})
 
-    if msg_type != "LOGIN":
+    if msg_type not in ("LOGIN", "CREATE_ACCOUNT"):
         token = payload.get('token')
         if token not in active_sessions:
             return jsonify({'error': 'Unauthorized'}), 401

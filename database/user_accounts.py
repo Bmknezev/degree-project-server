@@ -97,7 +97,7 @@ def admin_delete_account(connection, username):
 
 def get_all_users(connection):
     if table_exists(connection, "user"):
-        return select_value_from_table(connection, "user", f"first_name, last_name, username, email")
+        return select_value_from_table(connection, "user", f"first_name, last_name, username, email, user_id")
 
 
 # main function
