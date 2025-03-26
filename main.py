@@ -710,15 +710,21 @@ def check_role_handler(data):
     token = data.get('token')
     role = data.get('role')
 
+
+
+
     username = active_sessions.get(token)
+
+    print(f"Token: {token}")
+    print(f"Username from token: {username}")
+
     if not username:
         return {"authorized": False}
 
     connection = connect_to_db("company_db")
     cursor = connection.cursor()
 
-    print(f"Token: {token}")
-    print(f"Username from token: {username}")
+
 
     try:
         cursor.execute("""
