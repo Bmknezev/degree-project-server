@@ -11,6 +11,8 @@ import easyocr
 from flask import Flask, request
 from werkzeug.utils import secure_filename
 import test
+from database.approval_history import approve_multiple_invoices
+from database.payment_history import pay_multiple_invoices
 from database.user_accounts import *
 from database.invoices import *
 from database.vendors import *
@@ -338,11 +340,24 @@ def add_vendor_handler(data):
 
 def mark_invoices_paid_handler(data):
     invoice_ids = data.get("invoiceIds", [])
+    payment_number = data.get("paymentNumber")
+    amount = data.get("amount")
+    vendor = data.get("vendor")
+    token = request.get_json().get("token")
+    username = active_sessions.get(token)
     connection = connect_to_db("company_db")
     cursor = connection.cursor()
+    user_id = get_user_id(connection, username)
 
     for invoice_id in invoice_ids:
         cursor.execute("UPDATE invoice SET status = 'paid', date_edited = CURRENT_DATE WHERE internal_id = ?",(invoice_id,))
+    pay_multiple_invoices(connection = connection,
+                          internal_ids = invoice_ids,
+                          paid_by = user_id,
+                          payment_method = "cheque",
+                          payment_number = payment_number)
+    connection.close()
+
 
     connection.commit()
     connection.close()
@@ -350,7 +365,9 @@ def mark_invoices_paid_handler(data):
 
 def pay_with_paypal_handler(data):
     invoice_ids = data.get("invoiceIds", [])
-
+    payment_number = data.get("paymentNumber")
+    amount = data.get("amount")
+    vendor = data.get("vendor")
     if not invoice_ids:
         return {"status": "error", "message": "Missing invoiceIds or vendor name."}
 
@@ -362,6 +379,8 @@ def pay_with_paypal_handler(data):
 
     connection = connect_to_db("company_db")
     cursor = connection.cursor()
+
+    user_id = get_user_id(connection, sender_username)
 
     try:
         # Step 1: Get vendor_id from the first invoice
@@ -409,6 +428,11 @@ def pay_with_paypal_handler(data):
             "UPDATE invoice SET status = 'paid', date_edited = CURRENT_DATE WHERE internal_id = ?",
             [(iid,) for iid in invoice_ids]
         )
+        pay_multiple_invoices(connection = connection,
+                              internal_ids = invoice_ids,
+                          paid_by = user_id,
+                          payment_method = "paypal",
+                          payment_number = payout_id)
         connection.commit()
 
         # Path setup
@@ -604,8 +628,11 @@ def approve_invoices_handler(data):
         }
 
     # Validate role
+    token_for_username = request.get_json().get("token")
+    sender_username = active_sessions.get(token_for_username)
     connection = connect_to_db("company_db")
     cursor = connection.cursor()
+    user_id = get_user_id(connection, sender_username)
     try:
         cursor.execute("""
             SELECT 1 FROM user u
@@ -633,7 +660,9 @@ def approve_invoices_handler(data):
                 "UPDATE invoice SET status = 'awaiting payment' WHERE internal_id = ?",
                 (invoice_id,)
             )
-
+        approve_multiple_invoices(connection = connection,
+                                  internal_ids = invoice_ids,
+                                  approved_by = user_id)
         connection.commit()
 
         return {

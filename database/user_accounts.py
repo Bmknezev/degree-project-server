@@ -99,23 +99,27 @@ def get_all_users(connection):
     if table_exists(connection, "user"):
         return select_value_from_table(connection, "user", f"first_name, last_name, username, email, user_id")
 
-
-# main function
-if __name__ == '__main__':
-    connection = connect_to_db("database")
-    table_name = "user"
+def create_user_table(connection):
+    if table_exists(connection, "user"):
+        return False
     columns = ("user_id INTEGER PRIMARY KEY, "
-               "username VARCHAR(255) NOT NULL, "
+               "username VARCHAR(255) UNIQUE NOT NULL, "
                "first_name VARCHAR(255) NOT NULL, "
                "last_name VARCHAR(255) NOT NULL, "
                "email VARCHAR(255) NOT NULL, "
                "password VARCHAR(255) NOT NULL, "
                "payment_info VARCHAR(255) NOT NULL")
+    return create_table(connection, "user", columns)
+
+
+# main function
+if __name__ == '__main__':
+    connection = connect_to_db("database")
 
     delete_account(connection, "admin", "admin")
-    drop_table(connection, table_name)
+    drop_table(connection, "user")
 
-    create_table(connection, table_name, columns)
+    create_user_table(connection)
     create_account(connection, "default", "account", "user", "defaultuser@email.com", "password", "credit card")
     create_account(connection, "admin", "admin", "admin", "admin@email.com", "admin", "credit card")
     create_account(connection, "John", "Smith", "johnsmith1973", "johnsmith1973@email.com", "password123", "credit card")

@@ -19,12 +19,15 @@ def get_vendor_id(connection, internal_name):
 def get_gl_account_from_vendor(connection, vendor_id):
     return select_value_from_table(connection, "vendor", "default_gl_account", f"WHERE vendor_id = {vendor_id}", fetch_one = True, show_results = False)[0]
 
+def get_email_from_vendor(connection, vendor_id):
+    return select_value_from_table(connection, "vendor", "email", f"WHERE vendor_id = {vendor_id}", fetch_one = True, show_results = False)[0]
+
 def get_vendor_name(connection, vendor_id):
     return select_value_from_table(connection, "vendor", "vendor_name", f"WHERE vendor_id = {vendor_id}", fetch_one = True)[0]
 
-if __name__ == '__main__':
-    connection = connect_to_db("database")
-    table_name = 'vendor'
+def create_vendor_table(connection):
+    if table_exists(connection, "vendor"):
+        return False
     columns = ("vendor_id INTEGER PRIMARY KEY, "
                "vendor_name VARCHAR(255) NOT NULL, "
                "internal_name VARCHAR(255) NOT NULL, "
@@ -32,10 +35,14 @@ if __name__ == '__main__':
                "payment_info VARCHAR(255) NOT NULL, " 
                "address VARCHAR(255) NOT NULL, "
                "email VARCHAR(255) NOT NULL")
+    return create_table(connection, "vendor", columns)
 
-    drop_table(connection, table_name)
-    create_table(connection, table_name, columns)
+if __name__ == '__main__':
+    connection = connect_to_db("database")
+
+    drop_table(connection, "vendor")
+    create_vendor_table(connection)
 
     add_vendor(connection, "vendor1", "internal1", "gl_account1", "payment_info1", "address1", "email1")
 
-    print(select_all_from_table(connection, table_name))
+    print(select_all_from_table(connection, "vendor"))

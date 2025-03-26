@@ -6,7 +6,7 @@ from database.upload_history import *
 from database.user_accounts import *
 
 def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_date, status, uploader_id, subtotal = None, tax = None, gl_account = None, email = None, date_edited = None, description = None):
-    columns = "invoice_number, vendor, total, gl_account, issue_date, due_date, status"
+    columns = "invoice_number, vendor, total, gl_account, issue_date, due_date, status, email"
         # removes any character from the total value that is not a digit or a period
     total = ''.join(filter(lambda x: x.isdigit() or x == '.', str(total)))
         # removes any character from the vendor_id value that is not a digit
@@ -14,7 +14,9 @@ def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_da
         # if the gl_account is not provided, set it to the default gl account for the vendor
     if gl_account == None:
         gl_account = get_gl_account_from_vendor(connection, vendor_id)
-    values = f"'{invoice_number}', '{vendor_id}', {total}, '{gl_account}', '{issue_date}', '{due_date}', '{status}'"
+    if email == None:
+        email = get_email_from_vendor(connection, vendor_id)
+    values = f"'{invoice_number}', '{vendor_id}', {total}, '{gl_account}', '{issue_date}', '{due_date}', '{status}', '{email}'"
     if subtotal != None:
         columns += ", subtotal"
             # removes any character from the subtotal value that is not a digit or a period
@@ -25,9 +27,6 @@ def add_invoice(connection, invoice_number, vendor_id, total, issue_date, due_da
             # removes any character from the tax value that is not a digit or a period
         tax = ''.join(filter(lambda x: x.isdigit() or x == '.', str(tax)))
         values += f", {tax}"
-    if email != None:
-        columns += ", email"
-        values += f", '{email}'"
     if date_edited != None:
         columns += ", date_edited"
         values += f", '{date_edited}'"
@@ -69,11 +68,9 @@ def get_payement_amount_per_month(connection, year, account):
 
 def get_payment_summary(connection, year, account):
     return select_value_from_table(connection,"invoice",f" due_date, vendor, total", f" WHERE strftime('%Y', due_date) LIKE '{year}' AND gl_account = '{account}'")
-
-if __name__ == '__main__':
-    # Initialize the connection to the database
-    connection = connect_to_db("database")
-    table_name = "invoice"
+def create_invoice_table(connection):
+    if table_exists(connection, "invoice"):
+        return False
     columns = ("internal_id INTEGER PRIMARY KEY, "
                "invoice_number VARCHAR(255) NOT NULL, "
                "vendor INTEGER NOT NULL, "
@@ -88,11 +85,16 @@ if __name__ == '__main__':
                "status VARCHAR(17) NOT NULL CHECK (status IN ('awaiting approval', 'awaiting payment', 'paid')), "
                "description VARCHAR(255), "
                "FOREIGN KEY (vendor) REFERENCES vendor(vendor_id)")
+    return create_table(connection, "invoice", columns)
 
 
-    drop_table(connection, table_name)
+if __name__ == '__main__':
+    # Initialize the connection to the database
+    connection = connect_to_db("database")
 
-    create_table(connection, table_name, columns)
+    drop_table(connection, "invoice")
+    create_invoice_table(connection)
+
     vendor1_id = get_vendor_id(connection, "internal1")
     admin_id = get_user_id(connection, "admin")
     add_invoice(connection,
