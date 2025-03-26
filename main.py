@@ -342,7 +342,7 @@ def mark_invoices_paid_handler(data):
     cursor = connection.cursor()
 
     for invoice_id in invoice_ids:
-        cursor.execute("UPDATE invoice SET status = 'paid', date_paid = CURRENT_DATE WHERE internal_id = ?",(invoice_id,))
+        cursor.execute("UPDATE invoice SET status = 'paid', date_edited = CURRENT_DATE WHERE internal_id = ?",(invoice_id,))
 
     connection.commit()
     connection.close()
