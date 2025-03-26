@@ -371,7 +371,59 @@ def get_all_vendors_handler(data):
     finally:
         connection.close()
 
+def get_oldest_year_handler(data):
+    connection = connect_to_db("company_db")
+    return {"date": get_oldest_year(connection)[0]}
 
+def get_gl_accounts_handler(data):
+    connection = connect_to_db("company_db")
+    return {"gl_accounts": get_gl_accounts(connection)}
+
+def get_payement_amount_per_month_handler(data):
+    connection = connect_to_db("company_db")
+    response = get_payement_amount_per_month(connection, data.get("year"), data.get("account"))
+    list = []
+    for row in response:
+        list.append({
+        "month": row[0],
+        "total": row[1]
+        })
+    return {"status": "success", "data": list}
+
+def get_payment_summary_handler(data):
+    connection = connect_to_db("company_db")
+    response = get_payment_summary(connection, data.get("year"), data.get("account"), data.get("month"))
+    list = []
+    for row in response:
+        list.append({
+        "date": row[0],
+        "vendor": row[1],
+        "amount": row[2]
+        })
+    return {"status": "success", "data": list}
+
+def get_payement_amount_per_month_handler(data):
+    connection = connect_to_db("company_db")
+    response = get_payement_amount_per_month(connection, data.get("year"), data.get("account"))
+    list = []
+    for row in response:
+        list.append({
+        "month": row[0],
+        "total": row[1]
+        })
+    return {"status": "success", "data": list}
+
+def get_payment_summary_handler(data):
+    connection = connect_to_db("company_db")
+    response = get_payment_summary(connection, data.get("year"), data.get("account"))
+    list = []
+    for row in response:
+        list.append({
+        "date": row[0],
+        "vendor": get_vendor_name(connection, row[1]),
+        "amount": row[2]
+        })
+    return {"status": "success", "data": list}
 
 # Add handler mapping
 MESSAGE_HANDLERS = {
@@ -389,7 +441,11 @@ MESSAGE_HANDLERS = {
     'UPDATE_VENDOR': update_vendor_handler,
     'GET_ALL_VENDORS': get_all_vendors_handler,
     'GET_ALL_USERS': get_all_users_handler,
-    'ADMIN_DELETE_ACCOUNT': admin_delete_account_handler
+    'ADMIN_DELETE_ACCOUNT': admin_delete_account_handler,
+    'GET_OLDEST_YEAR': get_oldest_year_handler,
+    'GET_GL_ACCOUNTS': get_gl_accounts_handler,
+    'GET_PAYMENT_AMOUNT_PER_MONTH': get_payement_amount_per_month_handler,
+    'GET_PAYMENT_SUMMARY': get_payment_summary_handler,
 }
 
 
