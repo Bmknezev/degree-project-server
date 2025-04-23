@@ -9,7 +9,7 @@ import ollama
 
 
 
-
+#function to get data from grouped ocr extraction
 def extract_text(res):
     data = {
         "invoice_num":[],
@@ -67,7 +67,7 @@ def extract_text(res):
 
     return data
 
-
+# function to get data in line by line ocr extraction
 def splitText(res):
     data = {
         "invoice_num":[],
@@ -133,20 +133,23 @@ def splitText(res):
                     data["email"].append(e)
     return data
 
-
+# main function called
 def OCR(file):
     print("First OCR Pass")
+    # start ocr reader
     reader = easyocr.Reader(['en'], gpu=True)
 
-
+    # get grouped text
     ocr_results = reader.readtext(file, detail=1, paragraph=True)
     d = extract_text(ocr_results)
     print(d)
 
     print("Second OCR Pass")
+    # ocr again but not grouped this time
     result = reader.readtext(file)
 
     data = []
+    # stuff to deal with grouping text
     for entry in result:
         coordinates, text, confidence = entry
         (tl_x, tl_y), (tr_x, tr_y), (br_x, br_y), (bl_x, bl_y) = coordinates
@@ -166,7 +169,7 @@ def OCR(file):
     extracted_text = "\n".join(grouped_texts)
 
 
-
+    # get data from text
     x = splitText(extracted_text)
 
 
@@ -175,11 +178,11 @@ def OCR(file):
 #combining
     combined = {}
 
-
+    # get initial stuff from first set of data
     for key, value in d.items():
         combined[key] = value
 
-
+    # add data from second set 
     for key,value in x.items():
         if value:
             if key in combined:
@@ -189,6 +192,8 @@ def OCR(file):
 
 
 #cleaning
+    # count number of missing data, used for ai stuff later
+    # also remove any empty values
     missing = 0
     for key, x in combined.items():
         if not x:
@@ -197,6 +202,7 @@ def OCR(file):
             if not i:
                 combined[key].remove(i)
 
+    # check for some bad data
     for i in combined['invoice_num']:
         if not re.search(r'\d', i):
             combined['invoice_num'].remove(i)
@@ -216,13 +222,14 @@ def OCR(file):
     if missing > 0:
         try:
             response = requests.get("http://localhost:11434")
-            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            response.raise_for_status()  # Raise HTTPError for bad responses
             online = True
             print("Ollama AI Online, Attempting To Extract",missing, "Missing Values")
         except requests.exceptions.RequestException:
             online = False
             print("Ollama AI Offline, Some Values May Be Missing")
 
+        # call to ai for getting missing data
         if online:
             for key in combined:
                 if not combined[key]:
@@ -231,9 +238,10 @@ def OCR(file):
                         combined[key].append(item)
 
     data = {}
-
+    # get the final data to send to client
     for key, item in combined.items():
         if item:
+            # bit more cleaning of symbols
             t = item.pop()
             if "$" in t:
                 t = t[1:]
@@ -244,7 +252,7 @@ def OCR(file):
     print("Done")
     return data
 
-
+# ollama ai call function, sends the text to the ai along with the image, retuns the data thats sent to the client
 def aiExtraction(img, t):
     text = "you will only give me exactly what is written in the picture, no extra characters. if there is no answer, respond with NULL. what is the "
     text = text + t
