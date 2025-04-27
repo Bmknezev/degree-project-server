@@ -51,8 +51,8 @@ except:
 active_sessions = {}  # token -> username
 
 #paypal varaibles
-PAYPAL_CLIENT_ID = "AX0u4jwN98Yd7HVVyHqzqVDtjWpJpNQN0fANuBWFT5pgjEYWFzFxw0JPTMyMk0pK4mu4Q-34om47kV1X"
-PAYPAL_CLIENT_SECRET = "EMjNTD2FRS61NoXJBuFgAtTR3BMfvzNJBBudRPEemIxGTQ7M00bMr43fLSjC7dHAZOc9WP7in9h6oSKO"
+PAYPAL_CLIENT_ID = "removed"
+PAYPAL_CLIENT_SECRET = "removed"
 PAYPAL_API_BASE = "https://api-m.sandbox.paypal.com"
 
 
